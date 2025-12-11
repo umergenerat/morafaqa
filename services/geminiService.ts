@@ -8,12 +8,14 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dis
 
 // Helper to get AI instance
 const getAiInstance = () => {
-  const key = process.env.API_KEY;
-  if (!key) {
-    console.error("API Key is missing in environment variables");
+  // Use process.env.API_KEY as per guidelines
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("API Key is missing. Please check Environment Variables.");
     return null;
   }
-  return new GoogleGenAI({ apiKey: key });
+  return new GoogleGenAI({ apiKey });
 };
 
 // Helper to convert File to Base64
@@ -84,7 +86,7 @@ export const generateStudentReport = async (
   if (!ai) {
     return {
       summary: "عذراً، خدمة الذكاء الاصطناعي غير متوفرة.",
-      recommendations: ["يرجى التحقق من إعدادات النظام."]
+      recommendations: ["تأكد من إعداد مفتاح API"]
     };
   }
 
