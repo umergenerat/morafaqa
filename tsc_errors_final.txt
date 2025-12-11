@@ -1,0 +1,5 @@
+pages/Attendance.tsx(231,11): error TS2353: Object literal may only specify known properties, and 'scale' does not exist in type 'Html2CanvasOptions'.
+pages/Maintenance.tsx(27,16): error TS18047: 'currentUser' is possibly 'null'.
+pages/Maintenance.tsx(30,66): error TS18047: 'currentUser' is possibly 'null'.
+pages/UserManagement.tsx(25,7): error TS18047: 'currentUser' is possibly 'null'.
+pages/UserManagement.tsx(204,32): error TS18047: 'currentUser' is possibly 'null'.

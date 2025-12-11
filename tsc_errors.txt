@@ -1,0 +1,19 @@
+pages/Academics.tsx(57,93): error TS18047: 'currentUser' is possibly 'null'.
+pages/Activities.tsx(50,84): error TS18047: 'currentUser' is possibly 'null'.
+pages/Attendance.tsx(7,23): error TS2307: Cannot find module 'jspdf' or its corresponding type declarations.
+pages/Attendance.tsx(8,25): error TS2307: Cannot find module 'html2canvas' or its corresponding type declarations.
+pages/Behavior.tsx(59,84): error TS18047: 'currentUser' is possibly 'null'.
+pages/Behavior.tsx(60,20): error TS18047: 'currentUser' is possibly 'null'.
+pages/Behavior.tsx(68,25): error TS18047: 'currentUser' is possibly 'null'.
+pages/Behavior.tsx(127,17): error TS18047: 'currentUser' is possibly 'null'.
+pages/Behavior.tsx(158,38): error TS18047: 'currentUser' is possibly 'null'.
+pages/Dining.tsx(23,66): error TS18047: 'currentUser' is possibly 'null'.
+pages/Dining.tsx(24,19): error TS18047: 'currentUser' is possibly 'null'.
+pages/Maintenance.tsx(27,14): error TS18047: 'currentUser' is possibly 'null'.
+pages/Maintenance.tsx(30,64): error TS18047: 'currentUser' is possibly 'null'.
+pages/Maintenance.tsx(61,21): error TS18047: 'currentUser' is possibly 'null'.
+pages/StudentList.tsx(48,66): error TS18047: 'currentUser' is possibly 'null'.
+pages/StudentList.tsx(49,20): error TS18047: 'currentUser' is possibly 'null'.
+pages/StudentList.tsx(54,22): error TS18047: 'currentUser' is possibly 'null'.
+pages/UserManagement.tsx(25,7): error TS18047: 'currentUser' is possibly 'null'.
+pages/UserManagement.tsx(204,32): error TS18047: 'currentUser' is possibly 'null'.
