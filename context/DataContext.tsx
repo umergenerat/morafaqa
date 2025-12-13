@@ -54,7 +54,8 @@ const DEFAULT_USERS_LIST: User[] = [
 
 const DEFAULT_SETTINGS: SchoolSettings = {
   institutionName: 'داخلية ثانوية المختار السوسي الإعدادية',
-  schoolYear: '2025/2026'
+  schoolYear: '2025/2026',
+  apiKey: ''
 };
 
 const DEFAULT_MENUS: WeeklyMenus = {
