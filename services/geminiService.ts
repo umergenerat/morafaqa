@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Student, BehaviorRecord, HealthRecord } from '../types';
 import * as XLSX from 'xlsx';
@@ -8,12 +9,26 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dis
 
 // Helper to get AI instance
 const getAiInstance = () => {
-  const key = process.env.API_KEY;
-  if (!key) {
-    console.error("API Key is missing in environment variables");
+  // 1. Try to get key from Local Storage (Settings)
+  let storedKey = '';
+  try {
+    const settingsStr = localStorage.getItem('morafaka_settings');
+    if (settingsStr) {
+      const settings = JSON.parse(settingsStr);
+      storedKey = settings.apiKey || '';
+    }
+  } catch (e) {
+    console.warn("Failed to read settings from local storage");
+  }
+
+  // 2. Fallback to Env variable
+  const apiKey = storedKey || process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("API Key is missing. Please check Settings or Environment Variables.");
     return null;
   }
-  return new GoogleGenAI({ apiKey: key });
+  return new GoogleGenAI({ apiKey });
 };
 
 // Helper to convert File to Base64
@@ -83,8 +98,8 @@ export const generateStudentReport = async (
   const ai = getAiInstance();
   if (!ai) {
     return {
-      summary: "عذراً، خدمة الذكاء الاصطناعي غير متوفرة.",
-      recommendations: ["يرجى التحقق من إعدادات النظام."]
+      summary: "عذراً، خدمة الذكاء الاصطناعي غير متوفرة. يرجى إدخال مفتاح API في الإعدادات.",
+      recommendations: ["تأكد من إعداد مفتاح API"]
     };
   }
 
@@ -145,7 +160,7 @@ export const draftParentMessage = async (
   details: string
 ): Promise<string> => {
   const ai = getAiInstance();
-  if (!ai) return "الرجاء التحقق من إعدادات النظام";
+  if (!ai) return "الرجاء التحقق من إعدادات مفتاح API في صفحة الإعدادات";
 
   try {
     const response = await ai.models.generateContent({
@@ -176,7 +191,7 @@ export const analyzeUploadedDocument = async (
   context: ImportContext
 ): Promise<any> => {
   const ai = getAiInstance();
-  if (!ai) throw new Error("API Key Missing.");
+  if (!ai) throw new Error("API Key Missing. Please add it in Settings.");
 
   let promptContent = '';
   let parts: any[] = [];

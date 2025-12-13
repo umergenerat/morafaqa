@@ -26,6 +26,7 @@ export interface SchoolSettings {
   institutionName: string;
   schoolYear: string;
   logoUrl?: string;
+  apiKey?: string; // Added for manual API Key entry
 }
 
 export type ScholarshipType = 'full' | 'half' | 'lunch' | 'none';
