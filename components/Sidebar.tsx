@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Stethoscope, 
-  ClipboardCheck, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Stethoscope,
+  ClipboardCheck,
+  Settings,
   LogOut,
   ShieldCheck,
   Utensils,
@@ -27,7 +27,7 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const { t, language } = useLanguage();
-  const { currentUser, logout, schoolSettings, hasUnsavedChanges, saveAllChanges } = useData();
+  const { currentUser, logout, schoolSettings } = useData();
   const role = currentUser?.role || UserRole.PARENT;
 
   const links = [
@@ -45,22 +45,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   ];
 
   const handleNavigation = () => {
-    if (hasUnsavedChanges) {
-      if (window.confirm(t('confirm_save_before_nav'))) {
-        saveAllChanges();
-      }
-    }
     if (window.innerWidth < 1024) {
       setIsOpen(false);
     }
   };
 
   const handleLogout = () => {
-    // Auto-save changes if any exist before logging out
-    if (hasUnsavedChanges) {
-      saveAllChanges();
-    }
-    
+
+
     // Execute logout immediately
     logout();
     // Close sidebar on mobile if open
@@ -73,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsOpen(false)}
         />
@@ -89,7 +81,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         {/* Fixed Header */}
         <div className="shrink-0 flex flex-col items-center justify-center py-6 bg-emerald-600 text-white shadow-md relative z-10">
           <div className="bg-white/10 p-2 rounded-full mb-2">
-             <GraduationCap className="w-8 h-8 text-emerald-50" />
+            <GraduationCap className="w-8 h-8 text-emerald-50" />
           </div>
           <h1 className="text-lg font-bold tracking-wide text-center px-4 leading-tight">
             {schoolSettings.institutionName}
@@ -109,15 +101,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                 onClick={handleNavigation}
                 className={({ isActive }) => `
                   flex items-center px-4 py-3 rounded-xl transition-all duration-200 group
-                  ${isActive 
-                    ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm' 
+                  ${isActive
+                    ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-emerald-600 font-medium'}
                 `}
               >
                 <link.icon className={`w-5 h-5 ${language === 'ar' ? 'ml-3' : 'mr-3'} ${
-                   // Icon specific transition
-                   'group-hover:scale-110 transition-transform duration-200'
-                }`} />
+                  // Icon specific transition
+                  'group-hover:scale-110 transition-transform duration-200'
+                  }`} />
                 <span>{t(link.label)}</span>
               </NavLink>
             ))}
@@ -125,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
           <div className="my-4 border-t border-gray-100 mx-2"></div>
 
-          <button 
+          <button
             type="button"
             onClick={handleLogout}
             className="w-full flex items-center px-4 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors font-medium"
