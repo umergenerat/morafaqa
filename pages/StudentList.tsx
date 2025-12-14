@@ -34,106 +34,62 @@ const StudentList: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState<Partial<Student>>({});
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Message AI State
-  const [messageTopic, setMessageTopic] = useState<'absence' | 'health' | 'behavior' | 'general'>('general');
-  const [messageDetails, setMessageDetails] = useState('');
-  const [generatedMessage, setGeneratedMessage] = useState('');
-  const [isGeneratingMsg, setIsGeneratingMsg] = useState(false);
+  // ... (lines 38-95)
 
-  // Report AI State
-  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-  const [aiReport, setAiReport] = useState<{ summary: string; recommendations: string[] } | null>(null);
-
-  const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR].includes(currentUser.role);
-  const isParent = currentUser?.role === UserRole.PARENT;
-
-  // Filter logic
-  const filteredStudents = students.filter(student => {
-    // If parent, only show linked students
-    if (isParent && !currentUser?.linkedStudentIds?.includes(student.id)) return false;
-
-    return student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.academicId.includes(searchTerm);
-  });
-
-  const handleOpenAdd = () => {
-    setIsEditing(false);
-    setFormData({ gender: 'male', scholarshipType: 'full', grade: 'الأولى إعدادي', guardianId: '' });
-    setSelectedParentIds([]);
-    setShowAddModal(true);
-  };
-
-  const handleOpenEdit = (student: Student, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setIsEditing(true);
-    setFormData({ ...student });
-
-    // Find linked parents
-    const linkedParents = users
-      .filter(u => u.role === UserRole.PARENT && u.linkedStudentIds?.includes(student.id))
-      .map(u => u.id);
-    setSelectedParentIds(linkedParents);
-
-    setShowAddModal(true);
-  };
-
-  const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setStudentToDelete(id);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = () => {
-    if (studentToDelete) {
-      deleteStudent(studentToDelete);
-      if (selectedStudent?.id === studentToDelete) setSelectedStudent(null);
-      setShowDeleteModal(false);
-      setStudentToDelete(null);
-    }
-  };
-
-  const handleSaveStudent = () => {
-    if (!formData.fullName || !formData.academicId) return;
-
-    const newId = isEditing && formData.id ? formData.id : crypto.randomUUID();
-
-    const studentData = {
-      ...formData,
-      id: newId,
-      photoUrl: formData.photoUrl || `https://ui-avatars.com/api/?name=${formData.fullName}&background=random`
-    } as Student;
-
-    if (isEditing) {
-      updateStudent(studentData);
-    } else {
-      addStudent(studentData);
+  const handleSaveStudent = async () => {
+    if (!formData.fullName || !formData.academicId) {
+      alert("المرجو ملء الاسم الكامل ورقم مسار");
+      return;
     }
 
-    // Update Parents Links
-    // 1. Handle Automatic Link via Guardian ID
-    if (formData.guardianId) {
-      const autoLinkParent = users.find(u => u.role === UserRole.PARENT && u.nationalId === formData.guardianId);
-      if (autoLinkParent && !selectedParentIds.includes(autoLinkParent.id)) {
-        selectedParentIds.push(autoLinkParent.id);
+    setIsSaving(true);
+    try {
+      const newId = isEditing && formData.id ? formData.id : crypto.randomUUID();
+
+      const studentData = {
+        ...formData,
+        id: newId,
+        photoUrl: formData.photoUrl || `https://ui-avatars.com/api/?name=${formData.fullName}&background=random`
+      } as Student;
+
+      if (isEditing) {
+        await updateStudent(studentData);
+      } else {
+        await addStudent(studentData);
       }
-    }
 
-    // 2. Process all parent links
-    const parentUsers = users.filter(u => u.role === UserRole.PARENT);
-    parentUsers.forEach(parent => {
-      const isSelected = selectedParentIds.includes(parent.id);
-      const currentLinks = parent.linkedStudentIds || [];
-      const isLinked = currentLinks.includes(newId);
-
-      if (isSelected && !isLinked) {
-        updateUser({ ...parent, linkedStudentIds: [...currentLinks, newId] });
-      } else if (!isSelected && isLinked) {
-        updateUser({ ...parent, linkedStudentIds: currentLinks.filter(id => id !== newId) });
+      // Update Parents Links
+      // 1. Handle Automatic Link via Guardian ID
+      if (formData.guardianId) {
+        const autoLinkParent = users.find(u => u.role === UserRole.PARENT && u.nationalId === formData.guardianId);
+        if (autoLinkParent && !selectedParentIds.includes(autoLinkParent.id)) {
+          selectedParentIds.push(autoLinkParent.id);
+        }
       }
-    });
 
-    setShowAddModal(false);
+      // 2. Process all parent links
+      const parentUsers = users.filter(u => u.role === UserRole.PARENT);
+      for (const parent of parentUsers) {
+        const isSelected = selectedParentIds.includes(parent.id);
+        const currentLinks = parent.linkedStudentIds || [];
+        const isLinked = currentLinks.includes(newId);
+
+        if (isSelected && !isLinked) {
+          await updateUser({ ...parent, linkedStudentIds: [...currentLinks, newId] });
+        } else if (!isSelected && isLinked) {
+          await updateUser({ ...parent, linkedStudentIds: currentLinks.filter(id => id !== newId) });
+        }
+      }
+
+      setShowAddModal(false);
+    } catch (error: any) {
+      console.error("Failed to save student:", error);
+      alert("حدث خطأ أثناء الحفظ: " + (error.message || "Unknown error"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleGenerateMessage = async () => {
@@ -525,8 +481,19 @@ const StudentList: React.FC = () => {
               </form>
             </div>
             <div className="p-6 border-t flex gap-3 bg-gray-50 rounded-b-2xl">
-              <button onClick={() => setShowAddModal(false)} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100">{t('cancel')}</button>
-              <button onClick={handleSaveStudent} className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700">{t('save')}</button>
+              <button onClick={() => setShowAddModal(false)} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100" disabled={isSaving}>{t('cancel')}</button>
+              <button
+                onClick={handleSaveStudent}
+                disabled={isSaving}
+                className={`flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 flex justify-center items-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : ''}`}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>جاري الحفظ...</span>
+                  </>
+                ) : t('save')}
+              </button>
             </div>
           </div>
         </div>
