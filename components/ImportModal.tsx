@@ -207,9 +207,15 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "Ø§Ù
 
           // Resolve Guardian ID (CNIE -> UUID)
           let resolvedGuardianId: string | null = null;
-          if (item.guardianId) {
-            const parentUser = users.find(u => u.role === UserRole.PARENT && u.nationalId === String(item.guardianId).trim());
-            if (parentUser) resolvedGuardianId = parentUser.id;
+          const inputGid = item.guardianId ? String(item.guardianId).trim() : null;
+
+          if (inputGid) {
+            const parentUser = users.find(u => u.role === UserRole.PARENT && u.nationalId === inputGid);
+            if (parentUser) {
+              resolvedGuardianId = parentUser.id;
+            } else if (users.some(u => u.id === inputGid)) {
+              resolvedGuardianId = inputGid; // It's already a valid UUID
+            }
           }
 
           const studentPayload = {
