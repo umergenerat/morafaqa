@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Upload, FileSpreadsheet, Image as ImageIcon, FileText, Loader2, X, CheckCircle, AlertTriangle, RefreshCw, PlusCircle, Trash2, Lock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { analyzeUploadedDocument, ImportContext } from '../services/geminiService';
 import { useData } from '../context/DataContext';
@@ -455,6 +455,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     }
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
@@ -535,18 +537,18 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
 
                     <input
                       type="file"
-                      id="fileInput"
+                      ref={fileInputRef}
                       className="hidden"
                       onChange={(e) => e.target.files && e.target.files.length > 0 && processFile(e.target.files[0])}
                       accept="image/*,.pdf,.xlsx,.xls,.csv"
                     />
-                    <label
-                      htmlFor="fileInput"
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
                       className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
                     >
                       <Upload className="w-5 h-5" />
                       اختيار ملف من الجهاز
-                    </label>
+                    </button>
                   </>
                 )}
               </div>
