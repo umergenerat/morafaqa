@@ -102,13 +102,35 @@ const StudentList: React.FC = () => {
 
     setIsSaving(true);
     try {
-      const newId = isEditing && formData.id ? formData.id : crypto.randomUUID();
+
+      // Resolve Guardian ID (Handle "" vs UUID vs CNIE)
+      let finalGuardianId: string | null = null;
+      const inputGid = formData.guardianId?.trim();
+
+      if (inputGid) {
+        // 1. Check if it matches a Parent by National ID (CNIE) - Priority for inputs
+        const parentByCnie = users.find(u => u.role === UserRole.PARENT && u.nationalId?.toLowerCase() === inputGid.toLowerCase());
+
+        if (parentByCnie) {
+          finalGuardianId = parentByCnie.id;
+        }
+        // 2. Check if it's already a valid UUID (Existing link)
+        else if (users.some(u => u.id === inputGid)) {
+          finalGuardianId = inputGid;
+        }
+        // 3. Otherwise, it's an invalid string/CNIE with no account -> Send null to avoid DB error
+        // (Optionally we could alert the user here, but for now we sanitize to prevent crash)
+      }
 
       const studentData = {
         ...formData,
         id: newId,
+        guardianId: finalGuardianId, // Use resolved value
         photoUrl: formData.photoUrl || `https://ui-avatars.com/api/?name=${formData.fullName}&background=random`
       } as Student;
+
+      // Debug log
+      console.log("Saving student:", { original: formData.guardianId, resolved: finalGuardianId });
 
       if (isEditing) {
         await updateStudent(studentData);
