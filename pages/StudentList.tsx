@@ -36,7 +36,63 @@ const StudentList: React.FC = () => {
   const [formData, setFormData] = useState<Partial<Student>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  // ... (lines 38-95)
+  // Message AI State
+  const [messageTopic, setMessageTopic] = useState<'absence' | 'health' | 'behavior' | 'general'>('general');
+  const [messageDetails, setMessageDetails] = useState('');
+  const [generatedMessage, setGeneratedMessage] = useState('');
+  const [isGeneratingMsg, setIsGeneratingMsg] = useState(false);
+
+  // Report AI State
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [aiReport, setAiReport] = useState<{ summary: string; recommendations: string[] } | null>(null);
+
+  const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR].includes(currentUser.role);
+  const isParent = currentUser?.role === UserRole.PARENT;
+
+  // Filter logic
+  const filteredStudents = students.filter(student => {
+    // If parent, only show linked students
+    if (isParent && !currentUser?.linkedStudentIds?.includes(student.id)) return false;
+
+    return student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.academicId.includes(searchTerm);
+  });
+
+  const handleOpenAdd = () => {
+    setIsEditing(false);
+    setFormData({ gender: 'male', scholarshipType: 'full', grade: 'الأولى إعدادي', guardianId: '' });
+    setSelectedParentIds([]);
+    setShowAddModal(true);
+  };
+
+  const handleOpenEdit = (student: Student, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setIsEditing(true);
+    setFormData({ ...student });
+
+    // Find linked parents
+    const linkedParents = users
+      .filter(u => u.role === UserRole.PARENT && u.linkedStudentIds?.includes(student.id))
+      .map(u => u.id);
+    setSelectedParentIds(linkedParents);
+
+    setShowAddModal(true);
+  };
+
+  const handleDeleteClick = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setStudentToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = () => {
+    if (studentToDelete) {
+      deleteStudent(studentToDelete);
+      if (selectedStudent?.id === studentToDelete) setSelectedStudent(null);
+      setShowDeleteModal(false);
+      setStudentToDelete(null);
+    }
+  };
 
   const handleSaveStudent = async () => {
     if (!formData.fullName || !formData.academicId) {
