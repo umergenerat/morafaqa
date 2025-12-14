@@ -193,9 +193,10 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     if (previewData.length === 0) return;
 
     setIsSaving(true);
+    let successCount = 0;
+    let failCount = 0;
 
     // Use for...of to await async operations sequentially or Promise.all for parallel
-    // Sequential is safer for rate limits / order preservation
     for (const item of previewData) {
       // Skip updates if conflict resolution is 'skip'
       if (item._status === 'update' && conflictResolution === 'skip') continue;
@@ -203,6 +204,14 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
       try {
         if (type === 'students') {
           const studentId = item._existingId || crypto.randomUUID();
+
+          // Resolve Guardian ID (CNIE -> UUID)
+          let resolvedGuardianId: string | null = null;
+          if (item.guardianId) {
+            const parentUser = users.find(u => u.role === UserRole.PARENT && u.nationalId === String(item.guardianId).trim());
+            if (parentUser) resolvedGuardianId = parentUser.id;
+          }
+
           const studentPayload = {
             id: studentId,
             fullName: item.fullName,
@@ -214,7 +223,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             roomNumber: item.roomNumber ? String(item.roomNumber) : '',
             guardianPhone: item.guardianPhone ? String(item.guardianPhone) : '',
             guardianAddress: item.guardianAddress || '',
-            guardianId: item.guardianId || '',
+            guardianId: resolvedGuardianId, // Send UUID or null, NEVER string
             photoUrl: item.photoUrl || `https://ui-avatars.com/api/?name=${item.fullName}&background=random`
           };
 
@@ -225,8 +234,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           }
 
           // AUTO-LINKING PARENT LOGIC
-          if (item.guardianId) {
-            const parentUser = users.find(u => u.role === UserRole.PARENT && u.nationalId === item.guardianId);
+          if (resolvedGuardianId) {
+            const parentUser = users.find(u => u.id === resolvedGuardianId);
             if (parentUser) {
               const currentLinks = parentUser.linkedStudentIds || [];
               if (!currentLinks.includes(studentId)) {
@@ -298,18 +307,22 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             }
           }
         }
+        successCount++;
       } catch (e) {
         console.error("Error saving item", item, e);
+        failCount++;
       }
     }
 
     setIsSaving(false);
 
-    // Explicit success feedback for the user
-    alert("تم استيراد البيانات وحفظها بنجاح!");
-
-    // Automatically close after saving
-    onClose();
+    if (failCount > 0) {
+      alert(`تمت العملية مع بعض الأخطاء.\nتم الحفظ: ${successCount}\nفشل: ${failCount}\nيرجى مراجعة البيانات.`);
+      if (successCount > 0) onClose();
+    } else {
+      alert("تم استيراد البيانات وحفظها بنجاح!");
+      onClose();
+    }
   };
 
   // Helper to render sortable header

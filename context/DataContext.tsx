@@ -262,60 +262,66 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Students
   const addStudent = async (student: Student) => {
-    // We let realtime handle the state update, OR we can do optimistic update
-    // For simplicity with Supabase Realtime, we fire and forget usually, but minimal optimistic helps responsiveness.
-    // However, existing UI depends on immediate results? Actually realtime is fast enough usually.
-    // Let's rely on realtime for "adding" to avoid ID conflicts (though we generate IDs client side often).
-    await supabase.from('students').insert(student);
+    const { error } = await supabase.from('students').insert(student);
+    if (error) throw error;
   };
 
   const updateStudent = async (student: Student) => {
-    await supabase.from('students').update(student).eq('id', student.id);
+    const { error } = await supabase.from('students').update(student).eq('id', student.id);
+    if (error) throw error;
   };
 
   const deleteStudent = async (id: string) => {
-    await supabase.from('students').delete().eq('id', id);
-    // Handled by Cascade in SQL but good to be explicit if needed, 
-    // though our SQL schema has ON DELETE CASCADE for foreign keys!
+    const { error } = await supabase.from('students').delete().eq('id', id);
+    if (error) throw error;
   };
 
   // Users
   const addUser = async (user: User) => {
-    await supabase.from('users').insert(user);
+    const { error } = await supabase.from('users').insert(user);
+    if (error) throw error;
   };
   const updateUser = async (user: User) => {
-    await supabase.from('users').update(user).eq('id', user.id);
+    const { error } = await supabase.from('users').update(user).eq('id', user.id);
+    if (error) throw error;
     if (currentUser && currentUser.id === user.id) setCurrentUser(user);
   };
   const deleteUser = async (id: string) => {
     if (window.confirm('تأكيد حذف المستخدم؟')) {
-      await supabase.from('users').delete().eq('id', id);
+      const { error } = await supabase.from('users').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
   // Health
   const addHealthRecord = async (record: HealthRecord) => {
-    await supabase.from('healthRecords').insert(record);
+    const { error } = await supabase.from('healthRecords').insert(record);
+    if (error) throw error;
   };
   const updateHealthRecord = async (record: HealthRecord) => {
-    await supabase.from('healthRecords').update(record).eq('id', record.id);
+    const { error } = await supabase.from('healthRecords').update(record).eq('id', record.id);
+    if (error) throw error;
   };
   const deleteHealthRecord = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل الصحي؟')) {
-      await supabase.from('healthRecords').delete().eq('id', id);
+      const { error } = await supabase.from('healthRecords').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
   // Behavior
   const addBehaviorRecord = async (record: BehaviorRecord) => {
-    await supabase.from('behaviorRecords').insert(record);
+    const { error } = await supabase.from('behaviorRecords').insert(record);
+    if (error) throw error;
   };
   const updateBehaviorRecord = async (record: BehaviorRecord) => {
-    await supabase.from('behaviorRecords').update(record).eq('id', record.id);
+    const { error } = await supabase.from('behaviorRecords').update(record).eq('id', record.id);
+    if (error) throw error;
   };
   const deleteBehaviorRecord = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل السلوكي؟')) {
-      await supabase.from('behaviorRecords').delete().eq('id', id);
+      const { error } = await supabase.from('behaviorRecords').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
@@ -324,71 +330,86 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const today = new Date().toISOString().split('T')[0];
 
     // Check if exists
-    const { data: existing } = await supabase.from('attendanceRecords')
+    const { data: existing, error: fetchError } = await supabase.from('attendanceRecords')
       .select('*')
       .eq('studentId', studentId)
       .eq('date', today)
       .maybeSingle();
 
+    if (fetchError) throw fetchError;
+
     if (existing) {
-      await supabase.from('attendanceRecords').update({ status }).eq('id', existing.id);
+      const { error } = await supabase.from('attendanceRecords').update({ status }).eq('id', existing.id);
+      if (error) throw error;
     } else {
-      await supabase.from('attendanceRecords').insert({
+      const { error } = await supabase.from('attendanceRecords').insert({
         id: crypto.randomUUID(),
         studentId,
         date: today,
         status,
         type: 'study'
       });
+      if (error) throw error;
     }
   };
 
   // Exits
   const addExitRecord = async (record: ExitRecord) => {
-    await supabase.from('exitRecords').insert(record);
+    const { error } = await supabase.from('exitRecords').insert(record);
+    if (error) throw error;
   };
   const deleteExitRecord = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف سجل الخروج هذا؟')) {
-      await supabase.from('exitRecords').delete().eq('id', id);
+      const { error } = await supabase.from('exitRecords').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
   // Activities
   const addActivity = async (activity: ActivityRecord) => {
-    await supabase.from('activityRecords').insert(activity);
+    const { error } = await supabase.from('activityRecords').insert(activity);
+    if (error) throw error;
   };
   const updateActivity = async (activity: ActivityRecord) => {
-    await supabase.from('activityRecords').update(activity).eq('id', activity.id);
+    const { error } = await supabase.from('activityRecords').update(activity).eq('id', activity.id);
+    if (error) throw error;
   };
   const deleteActivity = async (id: string) => {
     if (window.confirm('تأكيد حذف النشاط؟')) {
-      await supabase.from('activityRecords').delete().eq('id', id);
+      const { error } = await supabase.from('activityRecords').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
   // Academics
   const addAcademicRecord = async (record: AcademicRecord) => {
-    await supabase.from('academicRecords').insert(record);
+    const { error } = await supabase.from('academicRecords').insert(record);
+    if (error) throw error;
   };
   const updateAcademicRecord = async (record: AcademicRecord) => {
-    await supabase.from('academicRecords').update(record).eq('id', record.id);
+    const { error } = await supabase.from('academicRecords').update(record).eq('id', record.id);
+    if (error) throw error;
   };
   const deleteAcademicRecord = async (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل الدراسي؟')) {
-      await supabase.from('academicRecords').delete().eq('id', id);
+      const { error } = await supabase.from('academicRecords').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
   // Maintenance
   const addMaintenanceRequest = async (record: MaintenanceRequest) => {
-    await supabase.from('maintenanceRequests').insert(record);
+    const { error } = await supabase.from('maintenanceRequests').insert(record);
+    if (error) throw error;
   };
   const updateMaintenanceRequest = async (record: MaintenanceRequest) => {
-    await supabase.from('maintenanceRequests').update(record).eq('id', record.id);
+    const { error } = await supabase.from('maintenanceRequests').update(record).eq('id', record.id);
+    if (error) throw error;
   };
   const deleteMaintenanceRequest = async (id: string) => {
     if (window.confirm('تأكيد حذف طلب الصيانة؟')) {
-      await supabase.from('maintenanceRequests').delete().eq('id', id);
+      const { error } = await supabase.from('maintenanceRequests').delete().eq('id', id);
+      if (error) throw error;
     }
   };
 
