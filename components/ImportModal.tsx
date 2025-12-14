@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Upload, FileSpreadsheet, Image as ImageIcon, FileText, Loader2, X, CheckCircle, AlertTriangle, RefreshCw, PlusCircle, Trash2, Lock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { analyzeUploadedDocument, ImportContext } from '../services/geminiService';
 import { useData } from '../context/DataContext';
@@ -456,6 +456,11 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
   };
 
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleZoneClick = () => {
+    fileInputRef.current?.click();
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
@@ -509,10 +514,11 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                onClick={handleZoneClick}
                 className={`
-                    border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300 w-full max-w-2xl
-                    ${isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-gray-300 hover:border-emerald-400 hover:bg-white bg-white/50'}
-                `}
+                      border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300 w-full max-w-2xl cursor-pointer
+                      ${isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-gray-300 hover:border-emerald-400 hover:bg-white bg-white/50'}
+                  `}
               >
                 {processing ? (
                   <div className="flex flex-col items-center py-8">
@@ -535,24 +541,30 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                     <h4 className="text-xl font-bold text-gray-800 mb-3">سحب وإفلات الملفات هنا</h4>
                     <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">يدعم النظام ملفات Excel، صور المستندات، وملفات PDF. سيتم التعرف على البيانات تلقائياً.</p>
 
-                    <label
-                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1 select-none"
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          processFile(e.target.files[0]);
+                          e.target.value = '';
+                        }
+                      }}
+                      accept="image/*,.pdf,.xlsx,.xls,.csv"
+                      onClick={(e) => e.stopPropagation()} // Prevent double trigger if clicked directly
+                    />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
                     >
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files && e.target.files.length > 0) {
-                            processFile(e.target.files[0]);
-                            // Reset value to allow selecting same file again if needed/error retry
-                            e.target.value = '';
-                          }
-                        }}
-                        accept="image/*,.pdf,.xlsx,.xls,.csv"
-                      />
                       <Upload className="w-5 h-5" />
                       اختيار ملف من الجهاز
-                    </label>
+                    </button>
                   </>
                 )}
               </div>
