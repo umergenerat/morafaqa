@@ -107,6 +107,9 @@ const StudentList: React.FC = () => {
       let finalGuardianId: string | null = null;
       const inputGid = formData.guardianId?.trim();
 
+      // Restore missing ID definition
+      const newId = isEditing && formData.id ? formData.id : crypto.randomUUID();
+
       if (inputGid) {
         // 1. Check if it matches a Parent by National ID (CNIE) - Priority for inputs
         const parentByCnie = users.find(u => u.role === UserRole.PARENT && u.nationalId?.toLowerCase() === inputGid.toLowerCase());
