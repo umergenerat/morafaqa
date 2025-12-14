@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Upload, FileSpreadsheet, Image as ImageIcon, FileText, Loader2, X, CheckCircle, AlertTriangle, RefreshCw, PlusCircle, Trash2, Lock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { analyzeUploadedDocument, ImportContext } from '../services/geminiService';
 import { useData } from '../context/DataContext';
@@ -304,6 +304,10 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     }
 
     setIsSaving(false);
+
+    // Explicit success feedback for the user
+    alert("تم استيراد البيانات وحفظها بنجاح!");
+
     // Automatically close after saving
     onClose();
   };
@@ -456,11 +460,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
   };
 
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleZoneClick = () => {
-    fileInputRef.current?.click();
-  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
@@ -509,65 +509,60 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           )}
 
           {previewData.length === 0 ? (
-            <div className="p-8 overflow-y-auto custom-scrollbar flex-1 flex items-center justify-center">
-              <div
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={handleZoneClick}
-                className={`
-                      border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300 w-full max-w-2xl cursor-pointer
-                      ${isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-gray-300 hover:border-emerald-400 hover:bg-white bg-white/50'}
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              className={`
+                      border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300 w-full max-w-2xl
+                      ${isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-gray-300 bg-white/50'}
                   `}
-              >
-                {processing ? (
-                  <div className="flex flex-col items-center py-8">
-                    <div className="relative mb-6">
-                      <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="w-6 h-6 text-emerald-600 animate-pulse" />
-                      </div>
+            >
+              {processing ? (
+                <div className="flex flex-col items-center py-8">
+                  <div className="relative mb-6">
+                    <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-emerald-600 animate-pulse" />
                     </div>
-                    <p className="text-xl font-bold text-gray-800 mb-2">جاري تحليل الوثيقة...</p>
-                    <p className="text-sm text-gray-500">نقوم بقراءة البيانات واستخراجها باستخدام الذكاء الاصطناعي</p>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex justify-center gap-6 mb-8">
-                      <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm"><FileText className="w-7 h-7" /></div>
-                      <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm"><FileSpreadsheet className="w-7 h-7" /></div>
-                      <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shadow-sm"><ImageIcon className="w-7 h-7" /></div>
-                    </div>
-                    <h4 className="text-xl font-bold text-gray-800 mb-3">سحب وإفلات الملفات هنا</h4>
-                    <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">يدعم النظام ملفات Excel، صور المستندات، وملفات PDF. سيتم التعرف على البيانات تلقائياً.</p>
+                  <p className="text-xl font-bold text-gray-800 mb-2">جاري تحليل الوثيقة...</p>
+                  <p className="text-sm text-gray-500">نقوم بقراءة البيانات واستخراجها باستخدام الذكاء الاصطناعي</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-center gap-6 mb-8">
+                    <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-sm"><FileText className="w-7 h-7" /></div>
+                    <div className="w-14 h-14 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm"><FileSpreadsheet className="w-7 h-7" /></div>
+                    <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shadow-sm"><ImageIcon className="w-7 h-7" /></div>
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-800 mb-3">سحب وإفلات الملفات هنا</h4>
+                  <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">يدعم النظام ملفات Excel، صور المستندات، وملفات PDF. سيتم التعرف على البيانات تلقائياً.</p>
 
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          processFile(e.target.files[0]);
-                          e.target.value = '';
-                        }
-                      }}
-                      accept="image/*,.pdf,.xlsx,.xls,.csv"
-                      onClick={(e) => e.stopPropagation()} // Prevent double trigger if clicked directly
-                    />
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
-                    >
-                      <Upload className="w-5 h-5" />
-                      اختيار ملف من الجهاز
-                    </button>
-                  </>
-                )}
-              </div>
+                  <input
+                    id="import-file-input"
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        processFile(e.target.files[0]);
+                        e.target.value = '';
+                      }
+                    }}
+                    accept="image/*,.pdf,.xlsx,.xls,.csv"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById('import-file-input')?.click();
+                    }}
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
+                  >
+                    <Upload className="w-5 h-5" />
+                    اختيار ملف من الجهاز
+                  </button>
+                </>
+              )}
             </div>
           ) : (
             <div className="flex flex-col h-full animate-fade-in bg-white">
