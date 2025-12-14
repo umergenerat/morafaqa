@@ -41,6 +41,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
   const [previewData, setPreviewData] = useState<PreviewItem[]>([]);
   const [conflictResolution, setConflictResolution] = useState<'overwrite' | 'skip'>('overwrite');
 
+  // File Input Ref
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   // Sorting State
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
@@ -558,127 +561,122 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                   <h4 className="text-xl font-bold text-gray-800 mb-3">سحب وإفلات الملفات هنا</h4>
                   <p className="text-sm text-gray-500 mb-8 max-w-sm mx-auto">يدعم النظام ملفات Excel، صور المستندات، وملفات PDF. سيتم التعرف على البيانات تلقائياً.</p>
 
-  // ... (inside component)
-                  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-                    // ... (render)
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          processFile(e.target.files[0]);
-                          // Reset value to allow selecting same file again
-                          e.target.value = '';
-                        }
-                      }}
-                      accept="image/*,.pdf,.xlsx,.xls,.csv"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
-                    >
-                      <Upload className="w-5 h-5" />
-                      اختيار ملف من الجهاز
-                    </button>
-                  </>
-              )}
-                </div>
-              ) : (
-              <div className="flex flex-col h-full animate-fade-in bg-white">
-                {/* Toolbar */}
-                <div className="px-6 py-3 bg-gray-50 border-b flex flex-wrap justify-between items-center gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-1.5 rounded-lg border shadow-sm">
-                      <PlusCircle className="w-4 h-4 text-emerald-600" />
-                      <span>سجلات جديدة: <b className="text-emerald-700">{previewData.filter(i => i._status === 'new').length}</b></span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-1.5 rounded-lg border shadow-sm">
-                      <RefreshCw className="w-4 h-4 text-orange-600" />
-                      <span>تحديث سجلات: <b className="text-orange-700">{previewData.filter(i => i._status === 'update').length}</b></span>
-                    </div>
-                  </div>
-
-                  {previewData.some(i => i._status === 'update') && isAdmin && (
-                    <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
-                      <span className="text-xs font-bold text-orange-800 flex items-center gap-1">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        بيانات مكررة:
-                      </span>
-                      <label className="flex items-center gap-1.5 cursor-pointer hover:bg-orange-100/50 px-2 py-0.5 rounded transition-colors">
-                        <input type="radio" checked={conflictResolution === 'overwrite'} onChange={() => setConflictResolution('overwrite')} className="text-orange-600 focus:ring-orange-500" />
-                        <span className="text-xs font-medium">تحديث</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer hover:bg-orange-100/50 px-2 py-0.5 rounded transition-colors">
-                        <input type="radio" checked={conflictResolution === 'skip'} onChange={() => setConflictResolution('skip')} className="text-orange-600 focus:ring-orange-500" />
-                        <span className="text-xs font-medium">تجاهل</span>
-                      </label>
-                    </div>
-                  )}
-
-                  {!isAdmin && (
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
-                      <Lock className="w-3.5 h-3.5" />
-                      وضع المعاينة (للتعديل يرجى التواصل مع المدير)
-                    </div>
-                  )}
-                </div>
-
-                {/* Data Table */}
-                <div className="flex-1 overflow-auto custom-scrollbar relative">
-                  <table className="w-full text-sm text-right border-collapse">
-                    <thead className="bg-gray-50 text-gray-600 font-bold sticky top-0 z-10 shadow-sm border-b">
-                      {renderTableHeader()}
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 bg-white">
-                      {sortedPreviewData.map((item) => (
-                        <tr key={item._tempId} className={`hover:bg-gray-50 group transition-colors ${item._status === 'update' ? 'bg-orange-50/20' : ''}`}>
-                          {renderRowInputs(item)}
-                          <td className="px-4 py-2">
-                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item._status === 'new' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                              {item._status === 'new' ? 'جديد' : 'موجود'}
-                            </span>
-                          </td>
-                          {isAdmin && (
-                            <td className="px-4 py-2 text-center">
-                              <button
-                                onClick={() => handleDeleteItem(item._tempId)}
-                                className="text-gray-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors"
-                                title="حذف السجل"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="p-4 border-t bg-gray-50 flex items-center justify-between gap-4 flex-shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                  <button onClick={() => setPreviewData([])} className="px-6 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 text-gray-700 font-bold text-sm transition-colors shadow-sm">
-                    إلغاء / إعادة
-                  </button>
-
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        processFile(e.target.files[0]);
+                        e.target.value = '';
+                      }
+                    }}
+                    accept="image/*,.pdf,.xlsx,.xls,.csv"
+                  />
                   <button
-                    onClick={handleSaveData}
-                    disabled={isSaving}
-                    className={`px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold shadow-lg hover:shadow-emerald-200 transition-all flex items-center gap-2 transform active:scale-95 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-emerald-700 cursor-pointer shadow-lg hover:shadow-emerald-200 transition-all hover:-translate-y-1"
                   >
-                    {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                    <span>{isSaving ? 'جاري الحفظ...' : 'تأكيد الاستيراد'}</span>
-                    {!isSaving && <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-1">{previewData.length}</span>}
+                    <Upload className="w-5 h-5" />
+                    اختيار ملف من الجهاز
                   </button>
-                </div>
-              </div>
-          )}
+                </>
+              )}
             </div>
+          ) : (
+            <div className="flex flex-col h-full animate-fade-in bg-white">
+              {/* Toolbar */}
+              <div className="px-6 py-3 bg-gray-50 border-b flex flex-wrap justify-between items-center gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-1.5 rounded-lg border shadow-sm">
+                    <PlusCircle className="w-4 h-4 text-emerald-600" />
+                    <span>سجلات جديدة: <b className="text-emerald-700">{previewData.filter(i => i._status === 'new').length}</b></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-700 bg-white px-3 py-1.5 rounded-lg border shadow-sm">
+                    <RefreshCw className="w-4 h-4 text-orange-600" />
+                    <span>تحديث سجلات: <b className="text-orange-700">{previewData.filter(i => i._status === 'update').length}</b></span>
+                  </div>
+                </div>
+
+                {previewData.some(i => i._status === 'update') && isAdmin && (
+                  <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
+                    <span className="text-xs font-bold text-orange-800 flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      بيانات مكررة:
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer hover:bg-orange-100/50 px-2 py-0.5 rounded transition-colors">
+                      <input type="radio" checked={conflictResolution === 'overwrite'} onChange={() => setConflictResolution('overwrite')} className="text-orange-600 focus:ring-orange-500" />
+                      <span className="text-xs font-medium">تحديث</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer hover:bg-orange-100/50 px-2 py-0.5 rounded transition-colors">
+                      <input type="radio" checked={conflictResolution === 'skip'} onChange={() => setConflictResolution('skip')} className="text-orange-600 focus:ring-orange-500" />
+                      <span className="text-xs font-medium">تجاهل</span>
+                    </label>
+                  </div>
+                )}
+
+                {!isAdmin && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
+                    <Lock className="w-3.5 h-3.5" />
+                    وضع المعاينة (للتعديل يرجى التواصل مع المدير)
+                  </div>
+                )}
+              </div>
+
+              {/* Data Table */}
+              <div className="flex-1 overflow-auto custom-scrollbar relative">
+                <table className="w-full text-sm text-right border-collapse">
+                  <thead className="bg-gray-50 text-gray-600 font-bold sticky top-0 z-10 shadow-sm border-b">
+                    {renderTableHeader()}
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {sortedPreviewData.map((item) => (
+                      <tr key={item._tempId} className={`hover:bg-gray-50 group transition-colors ${item._status === 'update' ? 'bg-orange-50/20' : ''}`}>
+                        {renderRowInputs(item)}
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold border ${item._status === 'new' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
+                            {item._status === 'new' ? 'جديد' : 'موجود'}
+                          </span>
+                        </td>
+                        {isAdmin && (
+                          <td className="px-4 py-2 text-center">
+                            <button
+                              onClick={() => handleDeleteItem(item._tempId)}
+                              className="text-gray-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors"
+                              title="حذف السجل"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-4 border-t bg-gray-50 flex items-center justify-between gap-4 flex-shrink-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button onClick={() => setPreviewData([])} className="px-6 py-2.5 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 text-gray-700 font-bold text-sm transition-colors shadow-sm">
+                  إلغاء / إعادة
+                </button>
+
+                <button
+                  onClick={handleSaveData}
+                  disabled={isSaving}
+                  className={`px-8 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold shadow-lg hover:shadow-emerald-200 transition-all flex items-center gap-2 transform active:scale-95 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                  <span>{isSaving ? 'جاري الحفظ...' : 'تأكيد الاستيراد'}</span>
+                  {!isSaving && <span className="bg-white/20 px-2 py-0.5 rounded text-xs ml-1">{previewData.length}</span>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      </div>
-      );
+    </div>
+  );
 };
 
-      export default ImportModal;
+export default ImportModal;
