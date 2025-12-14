@@ -26,6 +26,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     updateHealthRecord,
     updateAttendance,
     addAcademicRecord,
+    addBehaviorRecord,
+    updateBehaviorRecord,
+    behaviorRecords,
     updateAcademicRecord,
     students,
     users,
@@ -115,9 +118,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
       } else {
         setErrorMsg("لم يتم العثور على بيانات صالحة في الملف.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setErrorMsg('حدث خطأ أثناء تحليل الملف. يرجى التأكد من الصيغة.');
+      setErrorMsg(error.message || 'حدث خطأ أثناء تحليل الملف. يرجى التأكد من الصيغة.');
     } finally {
       setProcessing(false);
     }
@@ -158,6 +161,14 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
       } else if (type === 'attendance') {
         const student = students.find(s => s.fullName.trim().toLowerCase().includes(item.studentName.trim().toLowerCase()));
         if (student) item.studentId = student.id;
+      } else if (type === 'behavior') {
+        if (item.studentName) {
+          const student = students.find(s => s.fullName.trim().toLowerCase().includes(item.studentName.trim().toLowerCase()));
+          if (student) {
+            item.studentId = student.id;
+            // Optional: Check for duplicates?
+          }
+        }
       }
 
       if (existing) {
@@ -179,14 +190,16 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
   };
 
   const handleUpdateItem = (id: string, field: string, value: any) => {
-    if (!isAdmin) return; // Strict check
+    // Allow Admin AND Supervisor
+    if (!isAdmin && currentUser?.role !== UserRole.SUPERVISOR) return;
     setPreviewData(prev => prev.map(item =>
       item._tempId === id ? { ...item, [field]: value } : item
     ));
   };
 
   const handleDeleteItem = (id: string) => {
-    if (!isAdmin) return; // Strict check
+    // Allow Admin AND Supervisor
+    if (!isAdmin && currentUser?.role !== UserRole.SUPERVISOR) return;
     setPreviewData(prev => prev.filter(item => item._tempId !== id));
   };
 
@@ -316,6 +329,30 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             }
           }
         }
+        else if (type === 'behavior') {
+          let studentId = item.studentId;
+          if (!studentId) {
+            const student = students.find(s => s.fullName.includes(item.studentName));
+            if (student) studentId = student.id;
+          }
+          if (studentId) {
+            const payload = {
+              id: item._existingId || crypto.randomUUID(),
+              studentId: studentId,
+              type: item.type || 'negative',
+              category: item.category || 'discipline',
+              description: item.description || '',
+              date: item.date || new Date().toISOString().split('T')[0],
+              time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              reporter: currentUser?.name || 'Imported'
+            };
+            if (item._status === 'update') {
+              await updateBehaviorRecord(payload as any);
+            } else {
+              await addBehaviorRecord(payload as any);
+            }
+          }
+        }
         successCount++;
       } catch (e) {
         console.error("Error saving item", item, e);
@@ -385,11 +422,21 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             <SortHeader label="الطالب" sortKey="studentName" />
             <SortHeader label="المعدل العام" sortKey="generalAverage" />
             <SortHeader label="الدورة" sortKey="semester" />
+            <SortHeader label="الدورة" sortKey="semester" />
+          </>
+        )}
+        {type === 'behavior' && (
+          <>
+            <SortHeader label="الطالب" sortKey="studentName" />
+            <SortHeader label="النوع" sortKey="type" />
+            <SortHeader label="التصنيف" sortKey="category" />
+            <SortHeader label="تاريخ" sortKey="date" />
+            <SortHeader label="الوصف" sortKey="description" />
           </>
         )}
 
         <SortHeader label="الحالة" sortKey="_status" />
-        {isAdmin && <th className="px-4 py-3 text-center font-bold text-gray-700 bg-gray-50 border-b border-gray-200">إجراء</th>}
+        {(isAdmin || currentUser?.role === UserRole.SUPERVISOR) && <th className="px-4 py-3 text-center font-bold text-gray-700 bg-gray-50 border-b border-gray-200">إجراء</th>}
       </tr>
     );
   };
@@ -398,11 +445,11 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
   const inputClass = (value: any) => `
     w-full bg-transparent border-b-2 outline-none px-2 py-1 transition-colors rounded-sm
     ${!value ? 'border-red-300 bg-red-50' : 'border-transparent'}
-    ${isAdmin ? 'focus:border-emerald-500 hover:bg-gray-50' : 'cursor-default text-gray-600'}
+    ${isAdmin || currentUser?.role === UserRole.SUPERVISOR ? 'focus:border-emerald-500 hover:bg-gray-50' : 'cursor-default text-gray-600'}
   `;
 
   const renderRowInputs = (item: PreviewItem) => {
-    const disabled = !isAdmin;
+    const disabled = !isAdmin && currentUser?.role !== UserRole.SUPERVISOR;
 
     switch (type) {
       case 'students': return (
@@ -477,6 +524,28 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           </td>
         </>
       );
+      case 'behavior': return (
+        <>
+          <td className="px-4 py-2">
+            <input type="text" disabled={disabled} value={item.studentName || ''} onChange={(e) => handleUpdateItem(item._tempId, 'studentName', e.target.value)} className={inputClass(item.studentName)} placeholder="مطلوب" />
+          </td>
+          <td className="px-4 py-2">
+            <select disabled={disabled} value={item.type || 'negative'} onChange={(e) => handleUpdateItem(item._tempId, 'type', e.target.value)} className={`bg-transparent outline-none w-full border-b border-transparent ${isAdmin || currentUser?.role === UserRole.SUPERVISOR ? 'focus:border-emerald-500' : 'appearance-none'}`}>
+              <option value="positive">إيجابي</option>
+              <option value="negative">سلبي</option>
+            </select>
+          </td>
+          <td className="px-4 py-2">
+            <input type="text" disabled={disabled} value={item.category || ''} onChange={(e) => handleUpdateItem(item._tempId, 'category', e.target.value)} className={inputClass(item.category)} />
+          </td>
+          <td className="px-4 py-2">
+            <input type="date" disabled={disabled} value={item.date || ''} onChange={(e) => handleUpdateItem(item._tempId, 'date', e.target.value)} className={`bg-transparent outline-none w-full border-b border-transparent ${isAdmin || currentUser?.role === UserRole.SUPERVISOR ? 'focus:border-emerald-500' : ''}`} />
+          </td>
+          <td className="px-4 py-2">
+            <input type="text" disabled={disabled} value={item.description || ''} onChange={(e) => handleUpdateItem(item._tempId, 'description', e.target.value)} className={inputClass(item.description)} />
+          </td>
+        </>
+      );
       default: return null;
     }
   };
@@ -499,7 +568,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             <p className="text-sm text-gray-500 mt-1 mr-1">
               {type === 'students' ? 'استيراد وقراءة لوائح التلاميذ' :
                 type === 'health' ? 'تحليل التقارير الطبية' :
-                  type === 'attendance' ? 'معالجة ورقة الغياب' : 'استيراد كشوف النقاط'}
+                  type === 'attendance' ? 'معالجة ورقة الغياب' :
+                    type === 'behavior' ? 'استيراد سجل السلوك' : 'استيراد كشوف النقاط'}
             </p>
           </div>
 
@@ -599,7 +669,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                   </div>
                 </div>
 
-                {previewData.some(i => i._status === 'update') && isAdmin && (
+                {previewData.some(i => i._status === 'update') && (isAdmin || currentUser?.role === UserRole.SUPERVISOR) && (
                   <div className="flex items-center gap-3 bg-orange-50 px-4 py-2 rounded-lg border border-orange-200">
                     <span className="text-xs font-bold text-orange-800 flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5" />
@@ -616,7 +686,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                   </div>
                 )}
 
-                {!isAdmin && (
+                {!isAdmin && currentUser?.role !== UserRole.SUPERVISOR && (
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">
                     <Lock className="w-3.5 h-3.5" />
                     وضع المعاينة (للتعديل يرجى التواصل مع المدير)
@@ -639,7 +709,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
                             {item._status === 'new' ? 'جديد' : 'موجود'}
                           </span>
                         </td>
-                        {isAdmin && (
+                        {(isAdmin || currentUser?.role === UserRole.SUPERVISOR) && (
                           <td className="px-4 py-2 text-center">
                             <button
                               onClick={() => handleDeleteItem(item._tempId)}

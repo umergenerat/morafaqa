@@ -184,7 +184,7 @@ export const draftParentMessage = async (
   }
 };
 
-export type ImportContext = 'students' | 'health' | 'attendance' | 'academics';
+export type ImportContext = 'students' | 'grades' | 'medical' | 'behavior' | 'academics' | 'health' | 'attendance';
 
 // Helper for Local Excel Parsing strategy
 const parseExcelLocally = (jsonData: any[], context: ImportContext): any[] | null => {
@@ -202,6 +202,12 @@ const parseExcelLocally = (jsonData: any[], context: ImportContext): any[] | nul
     // Health
     studentName: ['name', 'nom', 'prenom', 'etudiant', 'student', 'الاسم'],
     condition: ['maladie', 'condition', 'status', 'etat', 'حالة', 'مرض'],
+
+    // Behavior
+    type: ['type', 'nature', 'نوع', 'نمط'],
+    category: ['category', 'classification', 'تصنيف', 'فئة'],
+    description: ['description', 'details', 'note', 'وصف', 'ملاحظة', 'سلوك'],
+    date: ['date', 'time', 'تاريخ', 'وقت'],
 
     // Grades
     generalAverage: ['moyen', 'average', 'note', ' معدل', 'resultat'],
@@ -277,7 +283,7 @@ export const analyzeUploadedDocument = async (
         console.log("Local Excel parsing successful:", localResult.length, "items.");
         return { type: context, data: localResult };
       }
-      console.warn("Local parsing failed/unconfident. Falling back to specific AI extraction.");
+      console.warn("Local parsing result empty or low confidence. Attempting AI extraction...");
     } catch (e) {
       console.warn("Local Excel read error, trying AI:", e);
     }
@@ -287,7 +293,7 @@ export const analyzeUploadedDocument = async (
   // STRATEGY 2: AI Parsing (Gemini)
   // ---------------------------------------------------------
   const ai = getAiInstance();
-  if (!ai) throw new Error("API Key Missing. Please add it in Settings.");
+  if (!ai) throw new Error("مفتاح API مفقود. يرجى إضافته في الإعدادات لتفعيل الذكاء الاصطناعي.");
 
   let promptContent = '';
   let parts: any[] = [];
@@ -340,6 +346,23 @@ export const analyzeUploadedDocument = async (
     contextInstructions = `Extract health records. Return schema: { type: "health", data: [...] }`;
   } else if (context === 'attendance') {
     contextInstructions = `Extract attendance. Return schema: { type: "attendance", data: [...] }`;
+  } else if (context === 'behavior') {
+    contextInstructions = `
+      Extract behavior records.
+      Output JSON Format:
+      {
+        "type": "behavior",
+        "data": [
+          {
+            "studentName": "Student Name",
+            "type": "positive" or "negative",
+            "category": "discipline" or "academic" or "psychological" or "social",
+            "description": "Description of behavior",
+            "date": "YYYY-MM-DD"
+          }
+        ]
+      }
+    `;
   } else if (context === 'academics') {
     contextInstructions = `Extract grades. Return schema: { type: "academics", data: [...] }`;
   }

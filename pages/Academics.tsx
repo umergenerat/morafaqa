@@ -314,10 +314,10 @@ const Academics: React.FC = () => {
             <>
               <button
                 onClick={() => setShowImportModal(true)}
-                className="bg-white border border-gray-300 text-gray-700 px-3 py-2.5 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all"
-                title={t('import_grades')}
+                className="bg-white border border-gray-300 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 flex items-center gap-2 shadow-sm transition-all"
               >
-                <Upload className="w-5 h-5" />
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">{t('import')}</span>
               </button>
               <button
                 onClick={handleOpenAdd}

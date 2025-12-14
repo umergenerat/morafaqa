@@ -315,10 +315,10 @@ const Attendance: React.FC = () => {
           <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={() => setShowImportModal(true)}
-              className="bg-white border border-gray-300 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 flex items-center justify-center gap-2 shadow-sm flex-1 md:flex-none"
+              className="bg-white border border-gray-300 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 flex items-center justify-center gap-2 shadow-sm transition-all"
             >
               <Upload className="w-4 h-4" />
-              <span className="inline">{t('import')}</span>
+              <span className="hidden sm:inline">{t('import')}</span>
             </button>
             <div className="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-lg font-bold shadow-sm border border-emerald-200 dir-ltr hidden md:block">
               {today}
@@ -390,8 +390,8 @@ const Attendance: React.FC = () => {
                               {/* Parents View Read Only */}
                               {isParent ? (
                                 <span className={`px-4 py-2 rounded-lg font-bold text-sm ${currentStatus === 'present' ? 'bg-emerald-100 text-emerald-700' :
-                                    currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700' :
-                                      currentStatus === 'absent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                                  currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700' :
+                                    currentStatus === 'absent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
                                   }`}>
                                   {currentStatus === 'present' ? 'حاضر' :
                                     currentStatus === 'late' ? 'متأخر' :
@@ -699,8 +699,8 @@ const Attendance: React.FC = () => {
                           key={s.id}
                           onClick={() => toggleStudentSelection(s.id)}
                           className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all border ${selectedStudentIds.includes(s.id)
-                              ? 'bg-emerald-50 border-emerald-500 shadow-sm'
-                              : 'border-transparent hover:bg-gray-50'
+                            ? 'bg-emerald-50 border-emerald-500 shadow-sm'
+                            : 'border-transparent hover:bg-gray-50'
                             }`}
                         >
                           <div className="flex items-center gap-3">

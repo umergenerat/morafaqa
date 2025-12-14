@@ -22,7 +22,7 @@ const UserManagement: React.FC = () => {
   });
 
   // Security Check
-  if (currentUser?.role !== UserRole.ADMIN) {
+  if (!currentUser || currentUser.role !== UserRole.ADMIN) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
         <Shield className="w-16 h-16 mb-4 text-gray-300" />

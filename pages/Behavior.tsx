@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import ImportModal from '../components/ImportModal';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { BehaviorRecord, UserRole } from '../types';
@@ -19,7 +20,8 @@ import {
    Edit2,
    BarChart3,
    PieChart as PieChartIcon,
-   Filter
+   Filter,
+   Upload
 } from 'lucide-react';
 import {
    PieChart,
@@ -46,6 +48,7 @@ const Behavior: React.FC = () => {
 
    // State for Modal
    const [showModal, setShowModal] = useState(false);
+   const [showImportModal, setShowImportModal] = useState(false);
    const [isEditing, setIsEditing] = useState(false);
    const [studentSearchInModal, setStudentSearchInModal] = useState('');
    const [showCharts, setShowCharts] = useState(true);
@@ -197,13 +200,22 @@ const Behavior: React.FC = () => {
                </button>
 
                {canEdit && (
-                  <button
-                     onClick={handleOpenAdd}
-                     className="bg-amber-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-amber-700 flex items-center gap-2 shadow-md transition-all active:scale-95"
-                  >
-                     <Plus className="w-5 h-5" />
-                     <span>{t('add_behavior')}</span>
-                  </button>
+                  <>
+                     <button
+                        onClick={() => setShowImportModal(true)}
+                        className="bg-white border border-gray-300 text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 flex items-center justify-center gap-2 shadow-sm transition-all"
+                     >
+                        <Upload className="w-4 h-4" />
+                        <span className="hidden sm:inline">{t('import')}</span>
+                     </button>
+                     <button
+                        onClick={handleOpenAdd}
+                        className="bg-amber-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-amber-700 flex items-center gap-2 shadow-md transition-all active:scale-95"
+                     >
+                        <Plus className="w-5 h-5" />
+                        <span>{t('add_behavior')}</span>
+                     </button>
+                  </>
                )}
             </div>
          </div>
@@ -540,6 +552,13 @@ const Behavior: React.FC = () => {
                </div>
             </div>
          )}
+
+         <ImportModal
+            isOpen={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            type="behavior"
+            title="استيراد سجل السلوك"
+         />
       </div>
    );
 };
