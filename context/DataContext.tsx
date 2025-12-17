@@ -1,32 +1,32 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { Student, BehaviorRecord, HealthRecord, AttendanceRecord, ExitRecord, User, UserRole, SchoolSettings, ActivityRecord, WeeklyMenus, AcademicRecord, MaintenanceRequest } from '../types';
-import { supabase } from '../services/supabase';
-import {
-  MOCK_STUDENTS,
-  MOCK_BEHAVIOR,
-  MOCK_HEALTH,
-  MOCK_USER,
-  MOCK_BURSAR,
-  MOCK_ACTIVITIES,
-  MOCK_ACADEMICS,
-  MOCK_MAINTENANCE,
+import { 
+  MOCK_USER, 
   INITIAL_MEALS_AR,
   INITIAL_MEALS_FR,
   INITIAL_RAMADAN_AR,
-  INITIAL_RAMADAN_FR
+  INITIAL_RAMADAN_FR,
+  MOCK_STUDENTS,
+  MOCK_BEHAVIOR,
+  MOCK_HEALTH,
+  MOCK_ACTIVITIES,
+  MOCK_ACADEMICS,
+  MOCK_MAINTENANCE
 } from '../constants';
-
-const DEFAULT_SETTINGS: SchoolSettings = {
-  institutionName: 'داخلية ثانوية المختار السوسي الإعدادية',
-  schoolYear: '2025/2026',
-  apiKey: ''
-};
 
 const DEFAULT_MENUS: WeeklyMenus = {
   normalAr: INITIAL_MEALS_AR,
   normalFr: INITIAL_MEALS_FR,
   ramadanAr: INITIAL_RAMADAN_AR,
   ramadanFr: INITIAL_RAMADAN_FR
+};
+
+const DEFAULT_SETTINGS: SchoolSettings = {
+  institutionName: 'مؤسسة مرافقة',
+  schoolYear: '2025/2026',
+  apiKey: ''
 };
 
 interface DataContextType {
@@ -37,11 +37,11 @@ interface DataContextType {
   attendanceRecords: AttendanceRecord[];
   exitRecords: ExitRecord[];
   activityRecords: ActivityRecord[];
-  academicRecords: AcademicRecord[];
-  maintenanceRequests: MaintenanceRequest[];
+  academicRecords: AcademicRecord[]; 
+  maintenanceRequests: MaintenanceRequest[]; 
   users: User[];
   weeklyMenus: WeeklyMenus;
-
+  
   // Settings
   schoolSettings: SchoolSettings;
   updateSchoolSettings: (settings: SchoolSettings) => void;
@@ -51,7 +51,7 @@ interface DataContextType {
   isAuthenticated: boolean;
   login: (userId: string) => void;
   logout: () => void;
-  setCurrentUser: (user: User) => void;
+  setCurrentUser: (user: User) => void; 
 
   // Actions
   addStudent: (student: Student) => void;
@@ -61,7 +61,7 @@ interface DataContextType {
   updateUser: (user: User) => void;
   deleteUser: (id: string) => void;
   addHealthRecord: (record: HealthRecord) => void;
-  updateHealthRecord: (record: HealthRecord) => void;
+  updateHealthRecord: (record: HealthRecord) => void; 
   deleteHealthRecord: (id: string) => void;
   addBehaviorRecord: (record: BehaviorRecord) => void;
   updateBehaviorRecord: (record: BehaviorRecord) => void;
@@ -76,20 +76,42 @@ interface DataContextType {
   addAcademicRecord: (record: AcademicRecord) => void;
   updateAcademicRecord: (record: AcademicRecord) => void;
   deleteAcademicRecord: (id: string) => void;
-  addMaintenanceRequest: (record: MaintenanceRequest) => void;
-  updateMaintenanceRequest: (record: MaintenanceRequest) => void;
-  deleteMaintenanceRequest: (id: string) => void;
+  addMaintenanceRequest: (record: MaintenanceRequest) => void; 
+  updateMaintenanceRequest: (record: MaintenanceRequest) => void; 
+  deleteMaintenanceRequest: (id: string) => void; 
 
-  // Loading State
+  // Bulk Operations
+  insertBulk: (table: string, data: any[]) => Promise<void>;
+
+  // Save/Discard Control
+  hasUnsavedChanges: boolean;
+  saveAllChanges: () => void;
+  discardAllChanges: () => void;
   isLoading: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Auth State
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // Loading State
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Auth State (Persisted in Session Storage for basic session)
+  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('morafaka_session_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
+  
+  // Mock Mode State
+  const [isMockMode, setIsMockMode] = useState(false);
+  
+  // Dirty Flag (Less relevant in Realtime DB, but kept for UX consistency)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Data State
   const [students, setStudents] = useState<Student[]>([]);
@@ -99,319 +121,330 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [exitRecords, setExitRecords] = useState<ExitRecord[]>([]);
   const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>([]);
-  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]);
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]); 
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
   const [weeklyMenus, setWeeklyMenus] = useState<WeeklyMenus>(DEFAULT_MENUS);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const loadMockData = () => {
+    // Load full suite of mock data
+    setUsers([MOCK_USER]); 
+    setStudents(MOCK_STUDENTS);
+    setBehaviorRecords(MOCK_BEHAVIOR);
+    setHealthRecords(MOCK_HEALTH);
+    setActivityRecords(MOCK_ACTIVITIES);
+    setAcademicRecords(MOCK_ACADEMICS);
+    setMaintenanceRequests(MOCK_MAINTENANCE);
+    // Note: Settings and Menus keep default values
+  };
 
-  // --- Initial Data Load & Subscription ---
+  // --- Initial Data Fetch (Supabase) ---
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
 
-      // Parallel Fetch
-      const [
-        { data: sData }, { data: uData }, { data: bData }, { data: hData },
-        { data: attData }, { data: exData }, { data: actData }, { data: acData },
-        { data: maintData }, { data: setData }
-      ] = await Promise.all([
-        supabase.from('students').select('*'),
-        supabase.from('users').select('*'),
-        supabase.from('behaviorRecords').select('*'),
-        supabase.from('healthRecords').select('*'),
-        supabase.from('attendanceRecords').select('*'),
-        supabase.from('exitRecords').select('*'),
-        supabase.from('activityRecords').select('*'),
-        supabase.from('academicRecords').select('*'),
-        supabase.from('maintenanceRequests').select('*'),
-        supabase.from('settings').select('*')
-      ]);
+      try {
+        // 1. Connection Probe
+        const { error: probeError } = await supabase.from('settings').select('id').limit(1).maybeSingle();
+        
+        // Check for specific fetch errors that indicate connection issues
+        if (probeError && (probeError.message.includes('fetch') || probeError.message.includes('Failed to fetch') || probeError.message.includes('URL'))) {
+           throw new Error("Connection failed");
+        }
 
-      if (sData) setStudents(sData);
-      if (uData && uData.length > 0) setUsers(uData as User[]);
-      else {
-        // Fallback if no users exist (first run)
-        setUsers([MOCK_USER]);
-        // Optionally save mock user to DB
-        // supabase.from('users').insert(MOCK_USER);
+        // 2. Fetch All Tables in Parallel if probe succeeds
+        const [
+          sRes, uRes, setRes, bRes, hRes, aRes, eRes, actRes, acaRes, mRes
+        ] = await Promise.all([
+          supabase.from('students').select('*'),
+          supabase.from('users').select('*'),
+          supabase.from('settings').select('*').limit(1).maybeSingle(),
+          supabase.from('behavior_records').select('*'),
+          supabase.from('health_records').select('*'),
+          supabase.from('attendance_records').select('*'),
+          supabase.from('exit_records').select('*'),
+          supabase.from('activity_records').select('*'),
+          supabase.from('academic_records').select('*'),
+          supabase.from('maintenance_requests').select('*')
+        ]);
+
+        // If 'students' fetch specifically failed with an error, it might be a configuration issue.
+        if (sRes.error) throw sRes.error;
+
+        // Set State
+        if (sRes.data) setStudents(sRes.data);
+        if (uRes.data) setUsers(uRes.data);
+        
+        if (setRes.data) {
+          setSchoolSettings({
+            institutionName: setRes.data.institutionName || DEFAULT_SETTINGS.institutionName,
+            schoolYear: setRes.data.schoolYear || DEFAULT_SETTINGS.schoolYear,
+            apiKey: setRes.data.apiKey || ''
+          });
+          if (setRes.data.weeklyMenus && Object.keys(setRes.data.weeklyMenus).length > 0) {
+            setWeeklyMenus(setRes.data.weeklyMenus);
+          }
+        }
+
+        if (bRes.data) setBehaviorRecords(bRes.data);
+        if (hRes.data) setHealthRecords(hRes.data);
+        if (aRes.data) setAttendanceRecords(aRes.data);
+        if (eRes.data) setExitRecords(eRes.data);
+        if (actRes.data) setActivityRecords(actRes.data);
+        if (acaRes.data) setAcademicRecords(acaRes.data);
+        if (mRes.data) setMaintenanceRequests(mRes.data);
+
+        // Fallback: If DB is valid but totally empty (e.g. fresh Supabase project), 
+        // we might want to initialize at least the mock user so they can login.
+        if ((!uRes.data || uRes.data.length === 0) && (!sRes.data || sRes.data.length === 0)) {
+           console.log("Database connected but empty. Loading mock data for demo purposes.");
+           loadMockData();
+        }
+
+      } catch (error: any) {
+        console.warn("Running in Offline/Mock Mode due to connection error:", error.message || "Unknown error");
+        setIsMockMode(true);
+        loadMockData();
+      } finally {
+        setIsLoading(false);
       }
-
-      if (bData) setBehaviorRecords(bData);
-      if (hData) setHealthRecords(hData);
-      if (attData) setAttendanceRecords(attData);
-      if (exData) setExitRecords(exData as any);
-      if (actData) setActivityRecords(actData as any);
-      if (acData) setAcademicRecords(acData as any);
-      if (maintData) setMaintenanceRequests(maintData);
-
-      // Parse settings
-      if (setData) {
-        const settingsMap: any = {};
-        setData.forEach((item: any) => {
-          settingsMap[item.key] = item.value;
-        });
-        if (settingsMap.menus) setWeeklyMenus(settingsMap.menus);
-        if (settingsMap.schoolSettings) setSchoolSettings(settingsMap.schoolSettings);
-      }
-
-      setIsLoading(false);
     };
 
     fetchData();
-
-    // --- Realtime Subscriptions ---
-    const channels = [
-      supabase.channel('public:students').on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, payload => {
-        if (payload.eventType === 'INSERT') setStudents(prev => [...prev, payload.new as Student]);
-        if (payload.eventType === 'UPDATE') setStudents(prev => prev.map(s => s.id === payload.new.id ? payload.new as Student : s));
-        if (payload.eventType === 'DELETE') setStudents(prev => prev.filter(s => s.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:users').on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
-        if (payload.eventType === 'INSERT') setUsers(prev => [...prev, payload.new as User]);
-        if (payload.eventType === 'UPDATE') setUsers(prev => prev.map(u => u.id === payload.new.id ? payload.new as User : u));
-        if (payload.eventType === 'DELETE') setUsers(prev => prev.filter(u => u.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:behaviorRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'behaviorRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setBehaviorRecords(prev => [payload.new as BehaviorRecord, ...prev]);
-        if (payload.eventType === 'UPDATE') setBehaviorRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as BehaviorRecord : r));
-        if (payload.eventType === 'DELETE') setBehaviorRecords(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:healthRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'healthRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setHealthRecords(prev => [payload.new as HealthRecord, ...prev]);
-        if (payload.eventType === 'UPDATE') setHealthRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as HealthRecord : r));
-        if (payload.eventType === 'DELETE') setHealthRecords(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:attendanceRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'attendanceRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setAttendanceRecords(prev => [...prev, payload.new as AttendanceRecord]);
-        if (payload.eventType === 'UPDATE') setAttendanceRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as AttendanceRecord : r));
-        // Attendance usually isn't deleted, but strictly speaking handled here
-      }).subscribe(),
-
-      supabase.channel('public:exitRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'exitRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setExitRecords(prev => [payload.new as any, ...prev]);
-        if (payload.eventType === 'UPDATE') setExitRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as any : r));
-        if (payload.eventType === 'DELETE') setExitRecords(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:activityRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'activityRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setActivityRecords(prev => [payload.new as any, ...prev]);
-        if (payload.eventType === 'UPDATE') setActivityRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as any : r));
-        if (payload.eventType === 'DELETE') setActivityRecords(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:academicRecords').on('postgres_changes', { event: '*', schema: 'public', table: 'academicRecords' }, payload => {
-        if (payload.eventType === 'INSERT') setAcademicRecords(prev => [payload.new as any, ...prev]);
-        if (payload.eventType === 'UPDATE') setAcademicRecords(prev => prev.map(r => r.id === payload.new.id ? payload.new as any : r));
-        if (payload.eventType === 'DELETE') setAcademicRecords(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:maintenanceRequests').on('postgres_changes', { event: '*', schema: 'public', table: 'maintenanceRequests' }, payload => {
-        if (payload.eventType === 'INSERT') setMaintenanceRequests(prev => [payload.new as MaintenanceRequest, ...prev]);
-        if (payload.eventType === 'UPDATE') setMaintenanceRequests(prev => prev.map(r => r.id === payload.new.id ? payload.new as MaintenanceRequest : r));
-        if (payload.eventType === 'DELETE') setMaintenanceRequests(prev => prev.filter(r => r.id !== payload.old.id));
-      }).subscribe(),
-
-      supabase.channel('public:settings').on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, payload => {
-        if (payload.new && (payload.new as any).key === 'menus') setWeeklyMenus((payload.new as any).value);
-        if (payload.new && (payload.new as any).key === 'schoolSettings') setSchoolSettings((payload.new as any).value);
-      }).subscribe(),
-    ];
-
-    return () => {
-      channels.forEach(channel => supabase.removeChannel(channel));
-    };
   }, []);
 
-  // --- Actions (Direct DB Calls) ---
-
-  // Auth
+  // --- Auth Operations ---
   const login = (userId: string) => {
     const user = users.find(u => u.id === userId);
     if (user) {
-      setCurrentUser(user);
+      setCurrentUserState(user);
       setIsAuthenticated(true);
+      sessionStorage.setItem('morafaka_session_user', JSON.stringify(user));
     }
   };
 
   const logout = () => {
-    setCurrentUser(null);
+    setCurrentUserState(null);
     setIsAuthenticated(false);
+    sessionStorage.removeItem('morafaka_session_user');
   };
 
-  // Settings
-  const updateSchoolSettings = async (settings: SchoolSettings) => {
-    // optimistic update
-    setSchoolSettings(settings); // Immediate local feedback
+  const setCurrentUser = (user: User) => {
+    setCurrentUserState(user);
+    sessionStorage.setItem('morafaka_session_user', JSON.stringify(user));
+  };
 
-    // DB update (upsert)
-    const { error } = await supabase.from('settings').upsert({ key: 'schoolSettings', value: settings }, { onConflict: 'key' });
-    if (error) console.error("Error updating settings:", error);
+  // --- CRUD Operations (Sync with Supabase + Optimistic Update) ---
+
+  const updateSchoolSettings = async (settings: SchoolSettings) => {
+    setSchoolSettings(settings);
+    if (isMockMode) return;
+    
+    const { data } = await supabase.from('settings').select('id').limit(1).maybeSingle();
+    
+    if (data) {
+       await supabase.from('settings').update({
+        institutionName: settings.institutionName,
+        schoolYear: settings.schoolYear,
+        apiKey: settings.apiKey
+      }).eq('id', data.id);
+    } else {
+       await supabase.from('settings').insert([{
+         institutionName: settings.institutionName,
+         schoolYear: settings.schoolYear,
+         apiKey: settings.apiKey,
+         weeklyMenus: weeklyMenus
+       }]);
+    }
   };
 
   const updateWeeklyMenus = async (menus: WeeklyMenus) => {
     setWeeklyMenus(menus);
-    const { error } = await supabase.from('settings').upsert({ key: 'menus', value: menus }, { onConflict: 'key' });
-    if (error) console.error("Error updating menus:", error);
-  };
+    if (isMockMode) return;
 
-  // Students
-  const addStudent = async (student: Student) => {
-    const { error } = await supabase.from('students').insert(student);
-    if (error) throw error;
-  };
-
-  const updateStudent = async (student: Student) => {
-    const { error } = await supabase.from('students').update(student).eq('id', student.id);
-    if (error) throw error;
-  };
-
-  const deleteStudent = async (id: string) => {
-    const { error } = await supabase.from('students').delete().eq('id', id);
-    if (error) throw error;
-  };
-
-  // Users
-  const addUser = async (user: User) => {
-    const { error } = await supabase.from('users').insert(user);
-    if (error) throw error;
-  };
-  const updateUser = async (user: User) => {
-    const { error } = await supabase.from('users').update(user).eq('id', user.id);
-    if (error) throw error;
-    if (currentUser && currentUser.id === user.id) setCurrentUser(user);
-  };
-  const deleteUser = async (id: string) => {
-    if (window.confirm('تأكيد حذف المستخدم؟')) {
-      const { error } = await supabase.from('users').delete().eq('id', id);
-      if (error) throw error;
+    const { data } = await supabase.from('settings').select('id').limit(1).maybeSingle();
+    if (data) {
+        await supabase.from('settings').update({ weeklyMenus: menus }).eq('id', data.id);
     }
   };
 
-  // Health
-  const addHealthRecord = async (record: HealthRecord) => {
-    const { error } = await supabase.from('healthRecords').insert(record);
-    if (error) throw error;
-  };
-  const updateHealthRecord = async (record: HealthRecord) => {
-    const { error } = await supabase.from('healthRecords').update(record).eq('id', record.id);
-    if (error) throw error;
-  };
-  const deleteHealthRecord = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا السجل الصحي؟')) {
-      const { error } = await supabase.from('healthRecords').delete().eq('id', id);
-      if (error) throw error;
+  const syncSupabase = async (table: string, action: 'insert' | 'update' | 'delete', data: any, id?: string) => {
+    if (isMockMode) return; 
+
+    try {
+      let result;
+      
+      if (action === 'insert') {
+        result = await supabase.from(table).insert([data]).select();
+      } else if (action === 'update' && id) {
+        result = await supabase.from(table).update(data).eq('id', id).select();
+      } else if (action === 'delete' && id) {
+        result = await supabase.from(table).delete().eq('id', id);
+      }
+
+      if (result?.error) {
+        console.warn(`Supabase Error [${table}] [${action}]:`, result.error.message);
+      }
+    } catch (e: any) {
+      console.error(`System Error syncing ${table}:`, e.message || e);
     }
   };
 
-  // Behavior
-  const addBehaviorRecord = async (record: BehaviorRecord) => {
-    const { error } = await supabase.from('behaviorRecords').insert(record);
-    if (error) throw error;
-  };
-  const updateBehaviorRecord = async (record: BehaviorRecord) => {
-    const { error } = await supabase.from('behaviorRecords').update(record).eq('id', record.id);
-    if (error) throw error;
-  };
-  const deleteBehaviorRecord = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا السجل السلوكي؟')) {
-      const { error } = await supabase.from('behaviorRecords').delete().eq('id', id);
-      if (error) throw error;
+  // --- Bulk Operation ---
+  const insertBulk = async (table: string, data: any[]) => {
+    if (!data || data.length === 0) return;
+
+    // 1. Optimistic UI Update
+    switch(table) {
+        case 'students': setStudents(prev => [...prev, ...data]); break;
+        case 'health_records': setHealthRecords(prev => [...data, ...prev]); break;
+        case 'attendance_records': setAttendanceRecords(prev => [...prev, ...data]); break;
+        case 'academic_records': setAcademicRecords(prev => [...prev, ...data]); break;
+    }
+
+    // 2. DB Sync
+    if (isMockMode) return;
+
+    try {
+        const { error } = await supabase.from(table).insert(data);
+        if (error) {
+            console.error(`Bulk insert failed for ${table}:`, error.message);
+            alert("حدث خطأ أثناء حفظ البيانات في قاعدة البيانات. يرجى التحقق من الاتصال.");
+        }
+    } catch (e) {
+        console.error("System error during bulk insert:", e);
     }
   };
 
-  // Attendance
+  // -- Students --
+  const addStudent = (student: Student) => {
+    setStudents(prev => [...prev, student]);
+    syncSupabase('students', 'insert', student);
+  };
+  const updateStudent = (updated: Student) => {
+    setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+    syncSupabase('students', 'update', updated, updated.id);
+  };
+  const deleteStudent = (id: string) => {
+    setStudents(prev => prev.filter(s => s.id !== id));
+    syncSupabase('students', 'delete', null, id);
+  };
+
+  // -- Users --
+  const addUser = (user: User) => {
+    setUsers(prev => [...prev, user]);
+    syncSupabase('users', 'insert', user);
+  };
+  const updateUser = (updated: User) => {
+    setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+    if (currentUser && currentUser.id === updated.id) setCurrentUser(updated);
+    syncSupabase('users', 'update', updated, updated.id);
+  };
+  const deleteUser = (id: string) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    syncSupabase('users', 'delete', null, id);
+  };
+
+  // -- Health --
+  const addHealthRecord = (record: HealthRecord) => {
+    setHealthRecords(prev => [record, ...prev]);
+    syncSupabase('health_records', 'insert', record);
+  };
+  const updateHealthRecord = (record: HealthRecord) => {
+    setHealthRecords(prev => prev.map(h => h.id === record.id ? record : h));
+    syncSupabase('health_records', 'update', record, record.id);
+  };
+  const deleteHealthRecord = (id: string) => {
+    setHealthRecords(prev => prev.filter(h => h.id !== id));
+    syncSupabase('health_records', 'delete', null, id);
+  };
+
+  // -- Behavior --
+  const addBehaviorRecord = (record: BehaviorRecord) => {
+    setBehaviorRecords(prev => [record, ...prev]);
+    syncSupabase('behavior_records', 'insert', record);
+  };
+  const updateBehaviorRecord = (record: BehaviorRecord) => {
+    setBehaviorRecords(prev => prev.map(b => b.id === record.id ? record : b));
+    syncSupabase('behavior_records', 'update', record, record.id);
+  };
+  const deleteBehaviorRecord = (id: string) => {
+    setBehaviorRecords(prev => prev.filter(b => b.id !== id));
+    syncSupabase('behavior_records', 'delete', null, id);
+  };
+
+  // -- Attendance --
   const updateAttendance = async (studentId: string, status: 'present' | 'absent' | 'late') => {
     const today = new Date().toISOString().split('T')[0];
-
-    // Check if exists
-    const { data: existing, error: fetchError } = await supabase.from('attendanceRecords')
-      .select('*')
-      .eq('studentId', studentId)
-      .eq('date', today)
-      .maybeSingle();
-
-    if (fetchError) throw fetchError;
-
+    
+    const existing = attendanceRecords.find(a => a.studentId === studentId && a.date === today);
+    let newRecord: AttendanceRecord;
+    
     if (existing) {
-      const { error } = await supabase.from('attendanceRecords').update({ status }).eq('id', existing.id);
-      if (error) throw error;
+      newRecord = { ...existing, status };
+      setAttendanceRecords(prev => prev.map(a => a.id === existing.id ? newRecord : a));
+      syncSupabase('attendance_records', 'update', newRecord, existing.id);
     } else {
-      const { error } = await supabase.from('attendanceRecords').insert({
-        id: crypto.randomUUID(),
-        studentId,
-        date: today,
-        status,
-        type: 'study'
-      });
-      if (error) throw error;
+      newRecord = { id: crypto.randomUUID(), studentId, date: today, status, type: 'study' };
+      setAttendanceRecords(prev => [...prev, newRecord]);
+      syncSupabase('attendance_records', 'insert', newRecord);
     }
   };
 
-  // Exits
-  const addExitRecord = async (record: ExitRecord) => {
-    const { error } = await supabase.from('exitRecords').insert(record);
-    if (error) throw error;
+  // -- Exits --
+  const addExitRecord = (record: ExitRecord) => {
+    setExitRecords(prev => [record, ...prev]);
+    syncSupabase('exit_records', 'insert', record);
   };
-  const deleteExitRecord = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف سجل الخروج هذا؟')) {
-      const { error } = await supabase.from('exitRecords').delete().eq('id', id);
-      if (error) throw error;
-    }
+  const deleteExitRecord = (id: string) => {
+    setExitRecords(prev => prev.filter(e => e.id !== id));
+    syncSupabase('exit_records', 'delete', null, id);
   };
 
-  // Activities
-  const addActivity = async (activity: ActivityRecord) => {
-    const { error } = await supabase.from('activityRecords').insert(activity);
-    if (error) throw error;
+  // -- Activities --
+  const addActivity = (activity: ActivityRecord) => {
+    setActivityRecords(prev => [activity, ...prev]);
+    syncSupabase('activity_records', 'insert', activity);
   };
-  const updateActivity = async (activity: ActivityRecord) => {
-    const { error } = await supabase.from('activityRecords').update(activity).eq('id', activity.id);
-    if (error) throw error;
+  const updateActivity = (updated: ActivityRecord) => {
+    setActivityRecords(prev => prev.map(a => a.id === updated.id ? updated : a));
+    syncSupabase('activity_records', 'update', updated, updated.id);
   };
-  const deleteActivity = async (id: string) => {
-    if (window.confirm('تأكيد حذف النشاط؟')) {
-      const { error } = await supabase.from('activityRecords').delete().eq('id', id);
-      if (error) throw error;
-    }
+  const deleteActivity = (id: string) => {
+    setActivityRecords(prev => prev.filter(a => a.id !== id));
+    syncSupabase('activity_records', 'delete', null, id);
   };
 
-  // Academics
-  const addAcademicRecord = async (record: AcademicRecord) => {
-    const { error } = await supabase.from('academicRecords').insert(record);
-    if (error) throw error;
+  // -- Academics --
+  const addAcademicRecord = (record: AcademicRecord) => {
+    setAcademicRecords(prev => [record, ...prev]);
+    syncSupabase('academic_records', 'insert', record);
   };
-  const updateAcademicRecord = async (record: AcademicRecord) => {
-    const { error } = await supabase.from('academicRecords').update(record).eq('id', record.id);
-    if (error) throw error;
+  const updateAcademicRecord = (record: AcademicRecord) => {
+    setAcademicRecords(prev => prev.map(r => r.id === record.id ? record : r));
+    syncSupabase('academic_records', 'update', record, record.id);
   };
-  const deleteAcademicRecord = async (id: string) => {
-    if (window.confirm('هل أنت متأكد من حذف هذا السجل الدراسي؟')) {
-      const { error } = await supabase.from('academicRecords').delete().eq('id', id);
-      if (error) throw error;
-    }
+  const deleteAcademicRecord = (id: string) => {
+    setAcademicRecords(prev => prev.filter(r => r.id !== id));
+    syncSupabase('academic_records', 'delete', null, id);
   };
 
-  // Maintenance
-  const addMaintenanceRequest = async (record: MaintenanceRequest) => {
-    const { error } = await supabase.from('maintenanceRequests').insert(record);
-    if (error) throw error;
+  // -- Maintenance --
+  const addMaintenanceRequest = (record: MaintenanceRequest) => {
+    setMaintenanceRequests(prev => [record, ...prev]);
+    syncSupabase('maintenance_requests', 'insert', record);
   };
-  const updateMaintenanceRequest = async (record: MaintenanceRequest) => {
-    const { error } = await supabase.from('maintenanceRequests').update(record).eq('id', record.id);
-    if (error) throw error;
+  const updateMaintenanceRequest = (record: MaintenanceRequest) => {
+    setMaintenanceRequests(prev => prev.map(r => r.id === record.id ? record : r));
+    syncSupabase('maintenance_requests', 'update', record, record.id);
   };
-  const deleteMaintenanceRequest = async (id: string) => {
-    if (window.confirm('تأكيد حذف طلب الصيانة؟')) {
-      const { error } = await supabase.from('maintenanceRequests').delete().eq('id', id);
-      if (error) throw error;
-    }
+  const deleteMaintenanceRequest = (id: string) => {
+    setMaintenanceRequests(prev => prev.filter(r => r.id !== id));
+    syncSupabase('maintenance_requests', 'delete', null, id);
   };
+
+  const saveAllChanges = () => { setHasUnsavedChanges(false); };
+  const discardAllChanges = () => { window.location.reload(); };
 
   return (
     <DataContext.Provider value={{
@@ -420,15 +453,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentUser, isAuthenticated, login, logout, setCurrentUser,
       addStudent, updateStudent, deleteStudent,
       addUser, updateUser, deleteUser,
-      addHealthRecord, updateHealthRecord, deleteHealthRecord,
+      addHealthRecord, updateHealthRecord, deleteHealthRecord, 
       addBehaviorRecord, updateBehaviorRecord, deleteBehaviorRecord,
       updateAttendance, addExitRecord, deleteExitRecord,
       addActivity, updateActivity, deleteActivity,
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,
       addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest,
-      isLoading
-    } as any}>
+      insertBulk,
+      hasUnsavedChanges, saveAllChanges, discardAllChanges, isLoading
+    }}>
       {children}
     </DataContext.Provider>
   );

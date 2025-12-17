@@ -104,6 +104,7 @@ const StudentList: React.FC = () => {
     try {
 
       // Resolve Guardian ID (Handle "" vs UUID vs CNIE)
+      // NOTE: guardianId stores the CNIE string directly, not a UUID reference
       let finalGuardianId: string | null = null;
       const inputGid = formData.guardianId?.trim();
 
@@ -111,18 +112,9 @@ const StudentList: React.FC = () => {
       const newId = isEditing && formData.id ? formData.id : crypto.randomUUID();
 
       if (inputGid) {
-        // 1. Check if it matches a Parent by National ID (CNIE) - Priority for inputs
-        const parentByCnie = users.find(u => u.role === UserRole.PARENT && u.nationalId?.toLowerCase() === inputGid.toLowerCase());
-
-        if (parentByCnie) {
-          finalGuardianId = parentByCnie.id;
-        }
-        // 2. Check if it's already a valid UUID (Existing link)
-        else if (users.some(u => u.id === inputGid)) {
-          finalGuardianId = inputGid;
-        }
-        // 3. Otherwise, it's an invalid string/CNIE with no account -> Send null to avoid DB error
-        // (Optionally we could alert the user here, but for now we sanitize to prevent crash)
+        // Store the CNIE directly as entered by the user
+        // This allows future linking when a parent account is created with this CNIE
+        finalGuardianId = inputGid;
       }
 
       const studentData = {

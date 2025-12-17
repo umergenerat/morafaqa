@@ -19,10 +19,10 @@ create table public.students (
   "motherPhone" text,
   "guardianName" text,
   "guardianPhone" text,
-  address text,
+  "guardianAddress" text, -- Changed from 'address' to match app types
   "roomNumber" text,
   "photoUrl" text,
-  "guardianId" uuid, -- link to users table
+  "guardianId" text, -- Parent CNIE/National ID for linking (stored as text, not UUID)
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
