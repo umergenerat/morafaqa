@@ -1,5 +1,5 @@
 
-import { supabase } from './services/supabase';
+import { supabase } from './lib/supabase';
 
 export const checkConnection = async () => {
     console.log("Checking Supabase connection...");
