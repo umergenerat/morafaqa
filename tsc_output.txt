@@ -1,0 +1,8 @@
+components/AIAssistant.tsx(4,10): error TS2459: Module '"../services/geminiService"' declares 'getAiInstance' locally, but it is not exported.
+components/AIAssistant.tsx(97,36): error TS7006: Parameter 'session' implicitly has an 'any' type.
+components/AIAssistant.tsx(111,46): error TS18048: 'message.serverContent.modelTurn.parts' is possibly 'undefined'.
+context/DataContext.tsx(29,3): error TS2353: Object literal may only specify known properties, and 'apiKey' does not exist in type 'SchoolSettings'.
+context/DataContext.tsx(182,13): error TS2353: Object literal may only specify known properties, and 'apiKey' does not exist in type 'SetStateAction<SchoolSettings>'.
+context/DataContext.tsx(249,26): error TS2339: Property 'apiKey' does not exist on type 'SchoolSettings'.
+context/DataContext.tsx(255,27): error TS2339: Property 'apiKey' does not exist on type 'SchoolSettings'.
+pages/Behavior.tsx(559,13): error TS2322: Type '"behavior"' is not assignable to type 'ImportContext'.

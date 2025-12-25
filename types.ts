@@ -26,9 +26,10 @@ export interface SchoolSettings {
   institutionName: string;
   schoolYear: string;
   logoUrl?: string;
-  apiKey?: string; // Added for manual API Key entry
+  apiKey?: string;
 }
 
+export type ImportContext = 'students' | 'health' | 'attendance' | 'academics' | 'behavior';
 export type ScholarshipType = 'full' | 'half' | 'lunch' | 'none';
 export type Gender = 'male' | 'female';
 

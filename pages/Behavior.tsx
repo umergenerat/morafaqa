@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import ImportModal from '../components/ImportModal';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { BehaviorRecord, UserRole } from '../types';
+import { BehaviorRecord, UserRole, ImportContext } from '../types';
 import {
    Star,
    Plus,

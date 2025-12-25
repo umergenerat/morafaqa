@@ -24,41 +24,41 @@ export const MOCK_BURSAR: User = {
 export const MOCK_STUDENTS: Student[] = [
   {
     id: 's1',
-    fullName: 'يوسف التركي',
+    fullName: 'يوسف العمراني',
     gender: 'male',
-    grade: 'الثالثة إعدادي',
+    grade: 'الأولى باكالوريا',
     academicId: 'K1300254',
     scholarshipNumber: '23001',
     scholarshipType: 'full',
     roomNumber: '101',
     guardianPhone: '0661123456',
-    guardianAddress: ' اقايكيرن',
+    guardianAddress: 'حي السلام، الزنقة 4، الدار البيضاء',
     photoUrl: 'https://picsum.photos/id/1012/200/200'
   },
   {
     id: 's2',
-    fullName: 'مروة تمتنا',
+    fullName: 'سارة بناني',
     gender: 'female',
-    grade: 'الأولى إعدادي',
+    grade: 'الثانية إعدادي',
     academicId: 'J1440211',
     scholarshipNumber: '23045',
     scholarshipType: 'half',
     roomNumber: '204',
     guardianPhone: '0661987654',
-    guardianAddress: ' اميتك',
+    guardianAddress: 'شارع الحسن الثاني، رقم 12، الرباط',
     photoUrl: 'https://picsum.photos/id/1027/200/200'
   },
   {
     id: 's3',
-    fullName: 'بوبكر اعروس ',
+    fullName: 'كريم التازي',
     gender: 'male',
-    grade: 'الثانية إعدادي ',
+    grade: 'الجذع المشترك',
     academicId: 'D1399872',
     scholarshipNumber: '',
     scholarshipType: 'lunch',
     roomNumber: '102',
     guardianPhone: '0661555555',
-    guardianAddress: ' إيجا',
+    guardianAddress: 'حي الهدى، أكادير',
     photoUrl: 'https://picsum.photos/id/1005/200/200'
   }
 ];
@@ -162,7 +162,7 @@ export const MOCK_ACADEMICS: AcademicRecord[] = [
     generalAverage: 15.5,
     rank: 3,
     appreciation: 'حسن',
-    teacherDecision: 'لوحة شرف',
+    teacherDecision: 'ينتقل',
     subjects: [
       { subjectName: 'الرياضيات', grade: 16, coefficient: 4 },
       { subjectName: 'الفيزياء', grade: 14.5, coefficient: 4 },

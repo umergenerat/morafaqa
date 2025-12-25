@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { UserRole } from '../types';
-import { Save, School, Calendar, CheckCircle, ShieldAlert, Key, Lock } from 'lucide-react';
+import { Save, School, Calendar, CheckCircle, ShieldAlert } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { schoolSettings, updateSchoolSettings, currentUser } = useData();
@@ -11,8 +10,7 @@ const Settings: React.FC = () => {
   
   const [formData, setFormData] = useState({
     institutionName: schoolSettings.institutionName,
-    schoolYear: schoolSettings.schoolYear,
-    apiKey: schoolSettings.apiKey || ''
+    schoolYear: schoolSettings.schoolYear
   });
   const [success, setSuccess] = useState(false);
 
@@ -32,8 +30,7 @@ const Settings: React.FC = () => {
     updateSchoolSettings({
         ...schoolSettings,
         institutionName: formData.institutionName,
-        schoolYear: formData.schoolYear,
-        apiKey: formData.apiKey
+        schoolYear: formData.schoolYear
     });
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
@@ -89,32 +86,6 @@ const Settings: React.FC = () => {
                         />
                     </div>
                      <p className="text-xs text-gray-500 mt-2">يحدد الأرشيف والسجلات الحالية.</p>
-                </div>
-            </div>
-
-            <div className="border-t border-gray-100 pt-6 mt-2">
-               <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Key className="w-5 h-5 text-emerald-600" />
-                  إعدادات الربط والذكاء الاصطناعي
-               </h4>
-               <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                         Google Gemini API Key
-                    </label>
-                    <div className="relative">
-                        <Lock className="absolute top-3.5 right-3 w-5 h-5 text-gray-400" />
-                        <input 
-                            type="password" 
-                            value={formData.apiKey}
-                            onChange={(e) => setFormData({...formData, apiKey: e.target.value})}
-                            className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-shadow text-gray-900 bg-white font-mono"
-                            placeholder="AIzaSy..."
-                        />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                      <ShieldAlert className="w-3 h-3 text-orange-500" />
-                      تنبيه: هذا المفتاح ضروري لتشغيل ميزات الاستيراد الذكي وتوليد التقارير. يتم حفظه محلياً في متصفحك.
-                    </p>
                 </div>
             </div>
 
