@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X, Printer, FileSpreadsheet, Send, User } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
-import { Meal, UserRole } from '../types';
+import { Meal, UserRole, MealOrder } from '../types';
 import * as XLSX from 'xlsx';
 
 const Dining: React.FC = () => {
   const { t, language } = useLanguage();
-  const { currentUser, students, users, attendanceRecords, weeklyMenus, updateWeeklyMenus } = useData();
+  const { currentUser, students, users, attendanceRecords, weeklyMenus, updateWeeklyMenus, addMealOrder } = useData();
   const [isRamadan, setIsRamadan] = useState(false);
 
   // Editing State
@@ -106,6 +106,19 @@ ${t('extra_meals')}:
 - ${m3Label}: +${extraMeals.m3}
 
 ${t('notes')}: ${orderNotes}`;
+
+    const order: MealOrder = {
+      id: crypto.randomUUID(),
+      date: new Date().toISOString().split('T')[0],
+      baseCount: baseCount,
+      extraMeals: extraMeals,
+      notes: orderNotes,
+      senderName: currentUser?.name || 'Unknown',
+      isRamadan: isRamadan,
+      status: 'sent'
+    };
+
+    addMealOrder(order);
 
     alert(message);
     setShowNotifyModal(false);

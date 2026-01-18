@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { Student, BehaviorRecord, HealthRecord, AttendanceRecord, ExitRecord, User, UserRole, SchoolSettings, ActivityRecord, WeeklyMenus, AcademicRecord, MaintenanceRequest } from '../types';
-import { 
-  MOCK_USER, 
+import { Student, BehaviorRecord, HealthRecord, AttendanceRecord, ExitRecord, User, UserRole, SchoolSettings, ActivityRecord, WeeklyMenus, AcademicRecord, MaintenanceRequest, MealOrder } from '../types';
+import {
+  MOCK_USER,
   INITIAL_MEALS_AR,
   INITIAL_MEALS_FR,
   INITIAL_RAMADAN_AR,
@@ -37,11 +37,12 @@ interface DataContextType {
   attendanceRecords: AttendanceRecord[];
   exitRecords: ExitRecord[];
   activityRecords: ActivityRecord[];
-  academicRecords: AcademicRecord[]; 
-  maintenanceRequests: MaintenanceRequest[]; 
+  academicRecords: AcademicRecord[];
+  maintenanceRequests: MaintenanceRequest[];
   users: User[];
   weeklyMenus: WeeklyMenus;
-  
+  mealOrders: MealOrder[];
+
   // Settings
   schoolSettings: SchoolSettings;
   updateSchoolSettings: (settings: SchoolSettings) => void;
@@ -51,7 +52,7 @@ interface DataContextType {
   isAuthenticated: boolean;
   login: (userId: string) => void;
   logout: () => void;
-  setCurrentUser: (user: User) => void; 
+  setCurrentUser: (user: User) => void;
 
   // Actions
   addStudent: (student: Student) => void;
@@ -61,7 +62,7 @@ interface DataContextType {
   updateUser: (user: User) => void;
   deleteUser: (id: string) => void;
   addHealthRecord: (record: HealthRecord) => void;
-  updateHealthRecord: (record: HealthRecord) => void; 
+  updateHealthRecord: (record: HealthRecord) => void;
   deleteHealthRecord: (id: string) => void;
   addBehaviorRecord: (record: BehaviorRecord) => void;
   updateBehaviorRecord: (record: BehaviorRecord) => void;
@@ -76,9 +77,10 @@ interface DataContextType {
   addAcademicRecord: (record: AcademicRecord) => void;
   updateAcademicRecord: (record: AcademicRecord) => void;
   deleteAcademicRecord: (id: string) => void;
-  addMaintenanceRequest: (record: MaintenanceRequest) => void; 
-  updateMaintenanceRequest: (record: MaintenanceRequest) => void; 
-  deleteMaintenanceRequest: (id: string) => void; 
+  addMaintenanceRequest: (record: MaintenanceRequest) => void;
+  updateMaintenanceRequest: (record: MaintenanceRequest) => void;
+  deleteMaintenanceRequest: (id: string) => void;
+  addMealOrder: (order: MealOrder) => void;
 
   // Bulk Operations
   insertBulk: (table: string, data: any[]) => Promise<void>;
@@ -106,10 +108,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
-  
+
   // Mock Mode State
   const [isMockMode, setIsMockMode] = useState(false);
-  
+
   // Dirty Flag (Less relevant in Realtime DB, but kept for UX consistency)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -121,14 +123,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [exitRecords, setExitRecords] = useState<ExitRecord[]>([]);
   const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>([]);
-  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]); 
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]);
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
   const [weeklyMenus, setWeeklyMenus] = useState<WeeklyMenus>(DEFAULT_MENUS);
+  const [mealOrders, setMealOrders] = useState<MealOrder[]>([]);
 
   const loadMockData = () => {
     // Load full suite of mock data
-    setUsers([MOCK_USER]); 
+    setUsers([MOCK_USER]);
     setStudents(MOCK_STUDENTS);
     setBehaviorRecords(MOCK_BEHAVIOR);
     setHealthRecords(MOCK_HEALTH);
@@ -146,15 +149,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         // 1. Connection Probe
         const { error: probeError } = await supabase.from('settings').select('id').limit(1).maybeSingle();
-        
+
         // Check for specific fetch errors that indicate connection issues
         if (probeError && (probeError.message.includes('fetch') || probeError.message.includes('Failed to fetch') || probeError.message.includes('URL'))) {
-           throw new Error("Connection failed");
+          throw new Error("Connection failed");
         }
 
         // 2. Fetch All Tables in Parallel if probe succeeds
         const [
-          sRes, uRes, setRes, bRes, hRes, aRes, eRes, actRes, acaRes, mRes
+          sRes, uRes, setRes, bRes, hRes, aRes, eRes, actRes, acaRes, mRes, moRes
         ] = await Promise.all([
           supabase.from('students').select('*'),
           supabase.from('users').select('*'),
@@ -165,7 +168,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           supabase.from('exit_records').select('*'),
           supabase.from('activity_records').select('*'),
           supabase.from('academic_records').select('*'),
-          supabase.from('maintenance_requests').select('*')
+          supabase.from('maintenance_requests').select('*'),
+          supabase.from('meal_orders').select('*')
         ]);
 
         // If 'students' fetch specifically failed with an error, it might be a configuration issue.
@@ -174,7 +178,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set State
         if (sRes.data) setStudents(sRes.data);
         if (uRes.data) setUsers(uRes.data);
-        
+
         if (setRes.data) {
           setSchoolSettings({
             institutionName: setRes.data.institutionName || DEFAULT_SETTINGS.institutionName,
@@ -193,12 +197,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (actRes.data) setActivityRecords(actRes.data);
         if (acaRes.data) setAcademicRecords(acaRes.data);
         if (mRes.data) setMaintenanceRequests(mRes.data);
+        if (moRes.data) setMealOrders(moRes.data);
 
         // Fallback: If DB is valid but totally empty (e.g. fresh Supabase project), 
         // we might want to initialize at least the mock user so they can login.
         if ((!uRes.data || uRes.data.length === 0) && (!sRes.data || sRes.data.length === 0)) {
-           console.log("Database connected but empty. Loading mock data for demo purposes.");
-           loadMockData();
+          console.log("Database connected but empty. Loading mock data for demo purposes.");
+          loadMockData();
         }
 
       } catch (error: any) {
@@ -239,22 +244,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSchoolSettings = async (settings: SchoolSettings) => {
     setSchoolSettings(settings);
     if (isMockMode) return;
-    
+
     const { data } = await supabase.from('settings').select('id').limit(1).maybeSingle();
-    
+
     if (data) {
-       await supabase.from('settings').update({
+      await supabase.from('settings').update({
         institutionName: settings.institutionName,
         schoolYear: settings.schoolYear,
         apiKey: settings.apiKey
       }).eq('id', data.id);
     } else {
-       await supabase.from('settings').insert([{
-         institutionName: settings.institutionName,
-         schoolYear: settings.schoolYear,
-         apiKey: settings.apiKey,
-         weeklyMenus: weeklyMenus
-       }]);
+      await supabase.from('settings').insert([{
+        institutionName: settings.institutionName,
+        schoolYear: settings.schoolYear,
+        apiKey: settings.apiKey,
+        weeklyMenus: weeklyMenus
+      }]);
     }
   };
 
@@ -264,16 +269,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const { data } = await supabase.from('settings').select('id').limit(1).maybeSingle();
     if (data) {
-        await supabase.from('settings').update({ weeklyMenus: menus }).eq('id', data.id);
+      await supabase.from('settings').update({ weeklyMenus: menus }).eq('id', data.id);
     }
   };
 
   const syncSupabase = async (table: string, action: 'insert' | 'update' | 'delete', data: any, id?: string) => {
-    if (isMockMode) return; 
+    if (isMockMode) return;
 
     try {
       let result;
-      
+
       if (action === 'insert') {
         result = await supabase.from(table).insert([data]).select();
       } else if (action === 'update' && id) {
@@ -295,24 +300,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!data || data.length === 0) return;
 
     // 1. Optimistic UI Update
-    switch(table) {
-        case 'students': setStudents(prev => [...prev, ...data]); break;
-        case 'health_records': setHealthRecords(prev => [...data, ...prev]); break;
-        case 'attendance_records': setAttendanceRecords(prev => [...prev, ...data]); break;
-        case 'academic_records': setAcademicRecords(prev => [...prev, ...data]); break;
+    switch (table) {
+      case 'students': setStudents(prev => [...prev, ...data]); break;
+      case 'health_records': setHealthRecords(prev => [...data, ...prev]); break;
+      case 'attendance_records': setAttendanceRecords(prev => [...prev, ...data]); break;
+      case 'academic_records': setAcademicRecords(prev => [...prev, ...data]); break;
     }
 
     // 2. DB Sync
     if (isMockMode) return;
 
     try {
-        const { error } = await supabase.from(table).insert(data);
-        if (error) {
-            console.error(`Bulk insert failed for ${table}:`, error.message);
-            alert("حدث خطأ أثناء حفظ البيانات في قاعدة البيانات. يرجى التحقق من الاتصال.");
-        }
+      const { error } = await supabase.from(table).insert(data);
+      if (error) {
+        console.error(`Bulk insert failed for ${table}:`, error.message);
+        alert("حدث خطأ أثناء حفظ البيانات في قاعدة البيانات. يرجى التحقق من الاتصال.");
+      }
     } catch (e) {
-        console.error("System error during bulk insert:", e);
+      console.error("System error during bulk insert:", e);
     }
   };
 
@@ -376,10 +381,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // -- Attendance --
   const updateAttendance = async (studentId: string, status: 'present' | 'absent' | 'late') => {
     const today = new Date().toISOString().split('T')[0];
-    
+
     const existing = attendanceRecords.find(a => a.studentId === studentId && a.date === today);
     let newRecord: AttendanceRecord;
-    
+
     if (existing) {
       newRecord = { ...existing, status };
       setAttendanceRecords(prev => prev.map(a => a.id === existing.id ? newRecord : a));
@@ -443,23 +448,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncSupabase('maintenance_requests', 'delete', null, id);
   };
 
+  // -- Meal Orders --
+  const addMealOrder = (order: MealOrder) => {
+    setMealOrders(prev => [order, ...prev]);
+    syncSupabase('meal_orders', 'insert', order);
+  };
+
   const saveAllChanges = () => { setHasUnsavedChanges(false); };
   const discardAllChanges = () => { window.location.reload(); };
 
   return (
     <DataContext.Provider value={{
-      students, users, behaviorRecords, healthRecords, attendanceRecords, exitRecords, activityRecords, weeklyMenus, academicRecords, maintenanceRequests,
+      students, users, behaviorRecords, healthRecords, attendanceRecords, exitRecords, activityRecords, weeklyMenus, academicRecords, maintenanceRequests, mealOrders,
       schoolSettings, updateSchoolSettings,
       currentUser, isAuthenticated, login, logout, setCurrentUser,
       addStudent, updateStudent, deleteStudent,
       addUser, updateUser, deleteUser,
-      addHealthRecord, updateHealthRecord, deleteHealthRecord, 
+      addHealthRecord, updateHealthRecord, deleteHealthRecord,
       addBehaviorRecord, updateBehaviorRecord, deleteBehaviorRecord,
       updateAttendance, addExitRecord, deleteExitRecord,
       addActivity, updateActivity, deleteActivity,
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,
       addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest,
+      addMealOrder,
       insertBulk,
       hasUnsavedChanges, saveAllChanges, discardAllChanges, isLoading
     }}>

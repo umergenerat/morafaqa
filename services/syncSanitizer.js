@@ -29,7 +29,8 @@ export const TABLE_READ_ONLY_COLUMNS = {
   attendance_records: [],
   health_records: [],
   academic_records: [],
-  maintenance_requests: []
+  maintenance_requests: [],
+  meal_orders: []
 };
 
 /**

@@ -162,3 +162,19 @@ export interface MaintenanceRequest {
   reporterName: string;
   costEstimate?: number; // Optional cost tracking
 }
+
+export interface MealOrder {
+  id: string;
+  date: string;
+  baseCount: number;
+  extraMeals: {
+    m1: number;
+    m2: number;
+    m3: number;
+  };
+  notes?: string;
+  senderName: string;
+  isRamadan: boolean;
+  status: 'sent' | 'received' | 'processed';
+  createdAt?: string;
+}
