@@ -29,7 +29,7 @@ async function keepAlive() {
     try {
         // Simple query to keep the database active
         const { data, error } = await supabase
-            .from('profiles')
+            .from('users')
             .select('id')
             .limit(1);
 
