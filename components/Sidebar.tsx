@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Stethoscope, 
-  ClipboardCheck, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Stethoscope,
+  ClipboardCheck,
+  Settings,
   LogOut,
   ShieldCheck,
   Utensils,
@@ -25,24 +25,24 @@ interface SidebarProps {
   setIsOpen: (val: boolean) => void;
 }
 
+export const SIDEBAR_ITEMS = [
+  { to: '/', label: 'dashboard', icon: LayoutDashboard, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT, UserRole.CATERING_MANAGER, UserRole.BURSAR] },
+  { to: '/students', label: 'students', icon: Users, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.NURSE, UserRole.PARENT, UserRole.BURSAR] },
+  { to: '/academics', label: 'academics', icon: LineChart, roles: [UserRole.ADMIN, UserRole.TEACHER, UserRole.PARENT, UserRole.SUPERVISOR] },
+  { to: '/behavior', label: 'behavior_tracking', icon: Star, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.PARENT] },
+  { to: '/health', label: 'health', icon: Stethoscope, roles: [UserRole.ADMIN, UserRole.NURSE, UserRole.PARENT] },
+  { to: '/attendance', label: 'attendance', icon: ClipboardCheck, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT] },
+  { to: '/dining', label: 'dining', icon: Utensils, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT, UserRole.TEACHER, UserRole.NURSE, UserRole.CATERING_MANAGER, UserRole.BURSAR] },
+  { to: '/maintenance', label: 'maintenance', icon: Wrench, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.BURSAR, UserRole.CATERING_MANAGER, UserRole.TEACHER] },
+  { to: '/activities', label: 'activities', icon: BookOpen, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.PARENT] },
+  { to: '/users', label: 'users', icon: ShieldCheck, roles: [UserRole.ADMIN] },
+  { to: '/settings', label: 'settings', icon: Settings, roles: [UserRole.ADMIN] },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const { t, language } = useLanguage();
   const { currentUser, logout, schoolSettings, hasUnsavedChanges, saveAllChanges } = useData();
   const role = currentUser?.role || UserRole.PARENT;
-
-  const links = [
-    { to: '/', label: 'dashboard', icon: LayoutDashboard, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT, UserRole.CATERING_MANAGER, UserRole.BURSAR] },
-    { to: '/students', label: 'students', icon: Users, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.NURSE, UserRole.PARENT, UserRole.BURSAR] },
-    { to: '/academics', label: 'academics', icon: LineChart, roles: [UserRole.ADMIN, UserRole.TEACHER, UserRole.PARENT, UserRole.SUPERVISOR] },
-    { to: '/behavior', label: 'behavior_tracking', icon: Star, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.PARENT] }, // New
-    { to: '/health', label: 'health', icon: Stethoscope, roles: [UserRole.ADMIN, UserRole.NURSE, UserRole.PARENT] },
-    { to: '/attendance', label: 'attendance', icon: ClipboardCheck, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT] },
-    { to: '/dining', label: 'dining', icon: Utensils, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.PARENT, UserRole.TEACHER, UserRole.NURSE, UserRole.CATERING_MANAGER, UserRole.BURSAR] },
-    { to: '/maintenance', label: 'maintenance', icon: Wrench, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.BURSAR, UserRole.CATERING_MANAGER, UserRole.TEACHER] },
-    { to: '/activities', label: 'activities', icon: BookOpen, roles: [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER, UserRole.PARENT] },
-    { to: '/users', label: 'users', icon: ShieldCheck, roles: [UserRole.ADMIN] }, // User Management
-    { to: '/settings', label: 'settings', icon: Settings, roles: [UserRole.ADMIN] }, // General Settings
-  ];
 
   const handleNavigation = () => {
     if (hasUnsavedChanges) {
@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     if (hasUnsavedChanges) {
       saveAllChanges();
     }
-    
+
     // Execute logout immediately
     logout();
     // Close sidebar on mobile if open
@@ -69,11 +69,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     }
   };
 
+  // Filter links based on Custom Permissions (if defined) OR Role defaults
+  const visibleLinks = SIDEBAR_ITEMS.filter(link => {
+    // 1. Custom Permissions Override
+    if (currentUser?.allowedPages && currentUser.allowedPages.length > 0) {
+      return currentUser.allowedPages.includes(link.to);
+    }
+    // 2. Default Role Access
+    return link.roles.includes(role);
+  });
+
   return (
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setIsOpen(false)}
         />
@@ -89,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         {/* Fixed Header */}
         <div className="shrink-0 flex flex-col items-center justify-center py-6 bg-emerald-600 text-white shadow-md relative z-10">
           <div className="bg-white/10 p-2 rounded-full mb-2">
-             <GraduationCap className="w-8 h-8 text-emerald-50" />
+            <GraduationCap className="w-8 h-8 text-emerald-50" />
           </div>
           <h1 className="text-lg font-bold tracking-wide text-center px-4 leading-tight">
             {schoolSettings.institutionName}
@@ -102,22 +112,22 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         {/* Scrollable Navigation Area */}
         <div className="flex-1 overflow-y-auto custom-scrollbar py-4 px-3 space-y-1">
           <nav className="space-y-1">
-            {links.filter(l => l.roles.includes(role)).map((link) => (
+            {visibleLinks.map((link) => (
               <NavLink
                 key={link.to + link.label}
                 to={link.to}
                 onClick={handleNavigation}
                 className={({ isActive }) => `
                   flex items-center px-4 py-3 rounded-xl transition-all duration-200 group
-                  ${isActive 
-                    ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm' 
+                  ${isActive
+                    ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-emerald-600 font-medium'}
                 `}
               >
                 <link.icon className={`w-5 h-5 ${language === 'ar' ? 'ml-3' : 'mr-3'} ${
-                   // Icon specific transition
-                   'group-hover:scale-110 transition-transform duration-200'
-                }`} />
+                  // Icon specific transition
+                  'group-hover:scale-110 transition-transform duration-200'
+                  }`} />
                 <span>{t(link.label)}</span>
               </NavLink>
             ))}
@@ -125,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
 
           <div className="my-4 border-t border-gray-100 mx-2"></div>
 
-          <button 
+          <button
             type="button"
             onClick={handleLogout}
             className="w-full flex items-center px-4 py-3 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-colors font-medium"

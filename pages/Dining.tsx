@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X, Printer, FileSpreadsheet, Send, User } from 'lucide-react';
+import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X, Printer, FileSpreadsheet, Send, User as UserIcon, MessageCircle, Smartphone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
-import { Meal, UserRole, MealOrder } from '../types';
+import { Meal, UserRole, MealOrder, User } from '../types';
 import * as XLSX from 'xlsx';
 
 const Dining: React.FC = () => {
@@ -88,10 +88,13 @@ const Dining: React.FC = () => {
     };
   };
 
-  const handleSendOrder = () => {
-    const baseCount = calculateDailyCounts().present;
+  const sendDirectMessage = (user: User, method: 'whatsapp' | 'sms') => {
+    if (!user.phone) {
+      alert(language === 'ar' ? `لا يوجد رقم هاتف للمستخدم: ${user.name}` : `Pas de numéro pour: ${user.name}`);
+      return;
+    }
 
-    // Determine labels based on mode
+    const baseCount = calculateDailyCounts().present;
     const m1Label = isRamadan ? t('ftour') : t('breakfast');
     const m2Label = isRamadan ? t('dinner') : t('lunch');
     const m3Label = isRamadan ? t('suhoor') : t('dinner');
@@ -107,6 +110,19 @@ ${t('extra_meals')}:
 
 ${t('notes')}: ${orderNotes}`;
 
+    if (method === 'whatsapp') {
+      const cleanPhone = user.phone.replace(/\D/g, '');
+      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+    } else {
+      const url = `sms:${user.phone}?body=${encodeURIComponent(message)}`;
+      window.location.href = url;
+    }
+  };
+
+  const handleSendOrderSystem = () => {
+    const baseCount = calculateDailyCounts().present;
+
     const order: MealOrder = {
       id: crypto.randomUUID(),
       date: new Date().toISOString().split('T')[0],
@@ -119,14 +135,20 @@ ${t('notes')}: ${orderNotes}`;
     };
 
     addMealOrder(order);
-
-    alert(message);
+    alert(language === 'ar' ? 'تم تسجيل الطلبية في النظام بنجاح' : 'Commande enregistrée dans le système avec succès');
     setShowNotifyModal(false);
     setOrderNotes('');
     setExtraMeals({ m1: 0, m2: 0, m3: 0 });
   };
 
   const cateringManagers = users.filter(u => u.role === UserRole.CATERING_MANAGER);
+  const bursars = users.filter(u => u.role === UserRole.BURSAR);
+
+  const recipients = [
+    ...cateringManagers.map(u => ({ user: u, label: t('catering_manager') })),
+    ...bursars.map(u => ({ user: u, label: t('bursar') }))
+  ];
+
   const meals = getCurrentMeals();
 
   return (
@@ -327,24 +349,59 @@ ${t('notes')}: ${orderNotes}`;
                   />
                 </div>
 
-                <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-xs text-blue-700">
-                  سيتم إرسال إشعار إلى: {cateringManagers.length > 0 ? cateringManagers.map(u => u.name).join(', ') : 'لا يوجد مسؤول مطعمة مسجل'}
+                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                  <h4 className="font-bold text-blue-800 mb-3 text-sm">{t('recipients_list') || (language === 'ar' ? 'قائمة المستلمين' : 'Destinataires')}</h4>
+                  <div className="space-y-3">
+                    {recipients.length > 0 ? recipients.map((item, idx) => (
+                      <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between bg-white p-3 rounded-lg border border-blue-100 gap-3">
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="w-4 h-4 text-blue-500" />
+                          <div>
+                            <p className="font-bold text-gray-800 text-sm">{item.label}</p>
+                            <p className="text-xs text-gray-500">{item.user.name}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => sendDirectMessage(item.user, 'whatsapp')}
+                            className="flex-1 sm:flex-none bg-[#25D366] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#128C7E] flex items-center justify-center gap-1 transition-colors"
+                            title="WhatsApp"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={() => sendDirectMessage(item.user, 'sms')}
+                            className="flex-1 sm:flex-none bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-600 flex items-center justify-center gap-1 transition-colors"
+                            title="SMS"
+                          >
+                            <Smartphone className="w-3.5 h-3.5" />
+                            SMS
+                          </button>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-gray-500 text-sm text-center italic">
+                        {language === 'ar' ? 'لا يوجد مستلمين (مطعمة أو مقتصد) مسجلين' : 'Aucun destinataire enregistré'}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 border-t flex gap-3 flex-shrink-0 bg-gray-50 rounded-b-2xl">
+            <div className="p-4 border-t flex gap-3 flex-shrink-0 bg-gray-50 rounded-b-2xl">
               <button type="button" onClick={() => setShowNotifyModal(false)} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors">
                 {t('cancel')}
               </button>
+
               <button
                 type="button"
-                onClick={handleSendOrder}
-                disabled={cateringManagers.length === 0}
-                className="flex-1 bg-orange-600 text-white font-bold py-3 rounded-xl hover:bg-orange-700 shadow-md transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleSendOrderSystem}
+                className="flex-[2] bg-orange-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-orange-700 shadow-md transition-colors flex justify-center items-center gap-2"
               >
                 <Send className="w-5 h-5" />
-                {t('send_order')}
+                <span className="hidden sm:inline">{t('send_order_system') || (language === 'ar' ? 'حفظ في النظام' : 'Enregistrer (Système)')}</span>
               </button>
             </div>
           </div>

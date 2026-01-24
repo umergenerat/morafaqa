@@ -20,6 +20,8 @@ export interface User {
   password?: string; // Added for mock auth
   // For parents, link them to specific students
   linkedStudentIds?: string[];
+  // For custom permissions (Sidebar items visibility)
+  allowedPages?: string[]; // List of paths (e.g. '/students', '/dining')
 }
 
 export interface SchoolSettings {

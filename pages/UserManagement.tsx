@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole } from '../types';
-import { UserPlus, Edit2, Trash2, Check, Shield, Search, Filter, Lock, Plus, Users, AlertCircle, Fingerprint } from 'lucide-react';
+import { UserPlus, Edit2, Trash2, Check, Shield, Search, Filter, Lock, Plus, Users, AlertCircle, Fingerprint, List } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import { SIDEBAR_ITEMS } from '../components/Sidebar';
 
 const UserManagement: React.FC = () => {
   const { users, students, currentUser, addUser, updateUser, deleteUser } = useData();
@@ -18,8 +19,11 @@ const UserManagement: React.FC = () => {
   // Form State
   const [formData, setFormData] = useState<Partial<User>>({
     role: UserRole.SUPERVISOR,
-    linkedStudentIds: []
+    linkedStudentIds: [],
+    allowedPages: []
   });
+
+  const [useCustomPermissions, setUseCustomPermissions] = useState(false);
 
   // Security Check
   if (!currentUser || currentUser.role !== UserRole.ADMIN) {
@@ -41,7 +45,8 @@ const UserManagement: React.FC = () => {
 
   const handleOpenAdd = () => {
     setIsEditing(false);
-    setFormData({ role: UserRole.SUPERVISOR, name: '', phone: '', email: '', nationalId: '', linkedStudentIds: [], password: '' });
+    setFormData({ role: UserRole.SUPERVISOR, name: '', phone: '', email: '', nationalId: '', linkedStudentIds: [], password: '', allowedPages: [] });
+    setUseCustomPermissions(false);
     setStudentSearchTerm('');
     setShowModal(true);
   };
@@ -49,6 +54,7 @@ const UserManagement: React.FC = () => {
   const handleOpenEdit = (user: User) => {
     setIsEditing(true);
     setFormData({ ...user, password: '' }); // Don't show existing password, allow reset
+    setUseCustomPermissions(!!user.allowedPages && user.allowedPages.length > 0);
     setStudentSearchTerm('');
     setShowModal(true);
   };
@@ -95,7 +101,8 @@ const UserManagement: React.FC = () => {
       nationalId: formData.nationalId,
       password: finalPassword,
       linkedStudentIds: formData.role === UserRole.PARENT ? finalLinkedStudentIds : [],
-      avatar: formData.avatar || `https://ui-avatars.com/api/?name=${formData.name}&background=random`
+      avatar: formData.avatar || `https://ui-avatars.com/api/?name=${formData.name}&background=random`,
+      allowedPages: useCustomPermissions ? formData.allowedPages : []
     };
 
     if (isEditing) {
@@ -112,6 +119,15 @@ const UserManagement: React.FC = () => {
       setFormData({ ...formData, linkedStudentIds: currentLinks.filter(id => id !== studentId) });
     } else {
       setFormData({ ...formData, linkedStudentIds: [...currentLinks, studentId] });
+    }
+  };
+
+  const togglePagePermission = (pagePath: string) => {
+    const currentPages = formData.allowedPages || [];
+    if (currentPages.includes(pagePath)) {
+      setFormData({ ...formData, allowedPages: currentPages.filter(p => p !== pagePath) });
+    } else {
+      setFormData({ ...formData, allowedPages: [...currentPages, pagePath] });
     }
   };
 
@@ -397,14 +413,61 @@ const UserManagement: React.FC = () => {
                       )}
                     </div>
 
-                    {(!formData.linkedStudentIds || formData.linkedStudentIds.length === 0) && !formData.nationalId && (
-                      <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded-lg text-xs font-bold">
-                        <AlertCircle className="w-4 h-4" />
-                        تنبيه: يجب ربط تلميذ واحد على الأقل أو إدخال رقم بطاقة وطنية صحيح.
-                      </div>
                     )}
                   </div>
                 )}
+
+                {/* Custom Permissions Section */}
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                      <List className="w-4 h-4 text-purple-600" />
+                      صلاحيات القائمة (Menu)
+                    </label>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={useCustomPermissions}
+                        onChange={(e) => {
+                          setUseCustomPermissions(e.target.checked);
+                          // Initialize with all default role pages if turning on, or empty if custom logic preferred? 
+                          // Let's initialize with empty or current selection
+                          if (!formData.allowedPages) setFormData({ ...formData, allowedPages: [] });
+                        }}
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                      <span className="mr-3 text-xs font-medium text-gray-700">تخصيص</span>
+                    </label>
+                  </div>
+
+                  {useCustomPermissions ? (
+                    <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
+                      {SIDEBAR_ITEMS.map((item) => {
+                        const isSelected = formData.allowedPages?.includes(item.to);
+                        return (
+                          <div
+                            key={item.to}
+                            onClick={() => togglePagePermission(item.to)}
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${isSelected
+                                ? 'bg-purple-100 border-purple-400 text-purple-900'
+                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              }`}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <span className="text-xs font-bold">{t(item.label)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 italic bg-gray-50 p-3 rounded-lg border border-gray-100">
+                      يتم تحديد عناصر القائمة تلقائياً بناءً على "الدور" المختار أعلاه. قم بتفعيل "تخصيص" لتحديد صفحات محددة يدوياً.
+                    </p>
+                  )}
+                </div>
               </form>
             </div>
 
@@ -413,9 +476,9 @@ const UserManagement: React.FC = () => {
               <button type="button" onClick={handleSave} className="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-700 transition-colors">حفظ</button>
             </div>
           </div>
-        </div>
+        </div >
       )}
-    </div>
+    </div >
   );
 };
 
