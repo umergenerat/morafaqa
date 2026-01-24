@@ -413,6 +413,11 @@ const UserManagement: React.FC = () => {
                       )}
                     </div>
 
+                    {(!formData.linkedStudentIds || formData.linkedStudentIds.length === 0) && !formData.nationalId && (
+                      <div className="mt-3 flex items-center gap-2 text-amber-600 bg-amber-50 p-2 rounded-lg text-xs font-bold">
+                        <AlertCircle className="w-4 h-4" />
+                        تنبيه: يجب ربط تلميذ واحد على الأقل أو إدخال رقم بطاقة وطنية صحيح.
+                      </div>
                     )}
                   </div>
                 )}
@@ -450,8 +455,8 @@ const UserManagement: React.FC = () => {
                             key={item.to}
                             onClick={() => togglePagePermission(item.to)}
                             className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${isSelected
-                                ? 'bg-purple-100 border-purple-400 text-purple-900'
-                                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                              ? 'bg-purple-100 border-purple-400 text-purple-900'
+                              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                               }`}
                           >
                             <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>
