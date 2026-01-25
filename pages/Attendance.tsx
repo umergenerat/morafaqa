@@ -29,6 +29,7 @@ const Attendance: React.FC = () => {
   // Bulk Selection State
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [studentFilter, setStudentFilter] = useState('');
+  const [exitAddressFilter, setExitAddressFilter] = useState('');
 
   // Exit View Filter State
   const [exitSearchTerm, setExitSearchTerm] = useState('');
@@ -149,10 +150,15 @@ const Attendance: React.FC = () => {
   // Filter students for Modal Selection
   const filteredStudentsForSelection = useMemo(() => {
     return students.filter(s =>
-      s.fullName.toLowerCase().includes(studentFilter.toLowerCase()) ||
-      s.roomNumber.includes(studentFilter)
+      (exitAddressFilter === '' || s.guardianAddress === exitAddressFilter) &&
+      (s.fullName.toLowerCase().includes(studentFilter.toLowerCase()) ||
+        s.roomNumber.includes(studentFilter))
     );
-  }, [students, studentFilter]);
+  }, [students, studentFilter, exitAddressFilter]);
+
+  const uniqueAddresses = useMemo(() => {
+    return Array.from(new Set(students.map(s => s.guardianAddress))).filter(Boolean).sort();
+  }, [students]);
 
   const saveAttendance = () => {
     alert(t('save') + '!');
@@ -200,6 +206,7 @@ const Attendance: React.FC = () => {
     setNewExit({ type: 'long', startDate: today, returnDate: '' });
     setSelectedStudentIds([]);
     setStudentFilter('');
+    setExitAddressFilter('');
   };
 
   const getExitTypeLabel = (type: ExitType) => {
@@ -214,6 +221,7 @@ const Attendance: React.FC = () => {
   const openExitModal = () => {
     setSelectedStudentIds([]);
     setStudentFilter('');
+    setExitAddressFilter('');
     setShowExitModal(true);
   }
 
@@ -669,23 +677,35 @@ const Attendance: React.FC = () => {
                       <Users className="w-4 h-4 text-blue-500" />
                       تحديد التلاميذ ({selectedStudentIds.length})
                     </h4>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          placeholder="بحث بالاسم أو الغرفة..."
-                          value={studentFilter}
-                          onChange={(e) => setStudentFilter(e.target.value)}
-                          className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none bg-white"
-                        />
-                        <Search className="absolute left-2.5 top-2.5 text-gray-400 w-4 h-4" />
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type="text"
+                            placeholder="بحث بالاسم أو الغرفة..."
+                            value={studentFilter}
+                            onChange={(e) => setStudentFilter(e.target.value)}
+                            className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none bg-white"
+                          />
+                          <Search className="absolute left-2.5 top-2.5 text-gray-400 w-4 h-4" />
+                        </div>
+                        <button
+                          onClick={toggleSelectAll}
+                          className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 whitespace-nowrap"
+                        >
+                          {selectedStudentIds.length === filteredStudentsForSelection.length && filteredStudentsForSelection.length > 0 ? 'إلغاء الكل' : 'تحديد الكل'}
+                        </button>
                       </div>
-                      <button
-                        onClick={toggleSelectAll}
-                        className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 whitespace-nowrap"
+                      <select
+                        value={exitAddressFilter}
+                        onChange={e => setExitAddressFilter(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-white border border-gray-300 rounded-lg focus:ring-1 focus:ring-emerald-500 outline-none"
                       >
-                        {selectedStudentIds.length === filteredStudentsForSelection.length && filteredStudentsForSelection.length > 0 ? 'إلغاء الكل' : 'تحديد الكل'}
-                      </button>
+                        <option value="">جميع العناوين</option>
+                        {uniqueAddresses.map(addr => (
+                          <option key={addr} value={addr}>{addr}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">

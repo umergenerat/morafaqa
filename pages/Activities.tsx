@@ -34,6 +34,7 @@ const Activities: React.FC = () => {
   const [filterType, setFilterType] = useState<ActivityType | 'ALL'>('ALL');
   const [viewParticipantsActivity, setViewParticipantsActivity] = useState<ActivityRecord | null>(null);
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('');
 
   const [newActivity, setNewActivity] = useState<Partial<ActivityRecord>>({
     type: 'cultural',
@@ -88,6 +89,7 @@ const Activities: React.FC = () => {
       participantIds: []
     });
     setStudentSearchTerm('');
+    setGradeFilter('');
     setShowModal(true);
   };
 
@@ -99,6 +101,7 @@ const Activities: React.FC = () => {
       participantIds: activity.participantIds || []
     });
     setStudentSearchTerm('');
+    setGradeFilter('');
     setShowModal(true);
   };
 
@@ -157,9 +160,12 @@ const Activities: React.FC = () => {
   };
 
   const filteredStudents = students.filter(s =>
-    s.fullName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-    s.grade.toLowerCase().includes(studentSearchTerm.toLowerCase())
+    (gradeFilter === '' || s.grade === gradeFilter) &&
+    (s.fullName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      s.grade.toLowerCase().includes(studentSearchTerm.toLowerCase()))
   );
+
+  const uniqueGrades = Array.from(new Set(students.map(s => s.grade))).sort();
 
   return (
     <div className="space-y-6">
@@ -231,8 +237,8 @@ const Activities: React.FC = () => {
         <button
           onClick={() => setFilterType('ALL')}
           className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${filterType === 'ALL'
-              ? 'bg-gray-800 text-white shadow-md'
-              : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-800'
+            ? 'bg-gray-800 text-white shadow-md'
+            : 'bg-white text-gray-600 border border-gray-200 hover:border-gray-800'
             }`}
         >
           الكل
@@ -242,8 +248,8 @@ const Activities: React.FC = () => {
             key={type}
             onClick={() => setFilterType(type)}
             className={`px-4 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 ${filterType === type
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'bg-white text-gray-600 border border-gray-200 hover:border-purple-600'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-white text-gray-600 border border-gray-200 hover:border-purple-600'
               }`}
           >
             {getTypeIcon(type)}
@@ -546,6 +552,19 @@ const Activities: React.FC = () => {
                     </div>
                   </div>
 
+                  <div className="flex gap-2 mb-3">
+                    <select
+                      value={gradeFilter}
+                      onChange={e => setGradeFilter(e.target.value)}
+                      className="w-full md:w-1/3 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-purple-200 outline-none"
+                    >
+                      <option value="">جميع المستويات</option>
+                      {uniqueGrades.map(grade => (
+                        <option key={grade} value={grade}>{grade}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div className="border border-gray-200 rounded-2xl p-2 bg-gray-50 max-h-48 overflow-y-auto custom-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {filteredStudents.map(student => {
@@ -556,8 +575,8 @@ const Activities: React.FC = () => {
                             type="button"
                             onClick={() => toggleParticipant(student.id)}
                             className={`flex items-center gap-3 p-2 rounded-xl border transition-all ${isSelected
-                                ? 'bg-purple-600 border-purple-600 text-white shadow-md'
-                                : 'bg-white border-gray-100 text-gray-700 hover:border-purple-200'
+                              ? 'bg-purple-600 border-purple-600 text-white shadow-md'
+                              : 'bg-white border-gray-100 text-gray-700 hover:border-purple-200'
                               }`}
                           >
                             <img src={student.photoUrl} alt="" className="w-8 h-8 rounded-full border border-gray-100 flex-shrink-0" />
