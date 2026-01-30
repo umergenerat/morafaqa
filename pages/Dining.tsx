@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X, Printer, FileSpreadsheet, Send, User } from 'lucide-react';
+import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X, Printer, FileSpreadsheet, Send, User, MessageCircle, Phone } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { Meal, UserRole } from '../types';
@@ -17,9 +17,10 @@ const Dining: React.FC = () => {
 
   // Notification State
   const [showNotifyModal, setShowNotifyModal] = useState(false);
-  // Detailed extra meals state
   const [extraMeals, setExtraMeals] = useState({ m1: 0, m2: 0, m3: 0 });
   const [orderNotes, setOrderNotes] = useState('');
+  const [selectedRecipientId, setSelectedRecipientId] = useState('');
+  const [notificationChannel, setNotificationChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
 
   const canEdit = Permissions.canManageDining(currentUser);
   const isAdmin = Permissions.canManageUsers(currentUser);
@@ -92,34 +93,40 @@ const Dining: React.FC = () => {
 
   const handleSendOrder = () => {
     const baseCount = calculateDailyCounts().present;
+    const recipient = users.find(u => u.id === selectedRecipientId);
 
-    // Determine labels based on mode
+    if (!recipient || !recipient.phone) {
+      alert(language === 'ar' ? 'المرجو اختيار مستلم برقم هاتف صحيح' : 'Veuillez choisir un destinataire avec un numéro valide');
+      return;
+    }
+
     const m1Label = isRamadan ? t('ftour') : t('breakfast');
     const m2Label = isRamadan ? t('dinner') : t('lunch');
     const m3Label = isRamadan ? t('suhoor') : t('dinner');
 
-    const message = `* ${t('notify_kitchen')}* 👨‍🍳
+    const message = `*${t('notify_kitchen')}* 👨‍🍳
 -------------------
-📊 * ${t('daily_count')}* (تلاميذ): ${baseCount}
+📊 *${t('daily_count')}* (تلاميذ): ${baseCount}
 
-📦 * ${t('extra_meals')}*:
+📦 *${t('extra_meals')}*:
 - ${m1Label}: +${extraMeals.m1}
 - ${m2Label}: +${extraMeals.m2}
 - ${m3Label}: +${extraMeals.m3}
 
-📝 * ${t('notes')}*: ${orderNotes || 'لا توجد'}
+📝 *${t('notes')}*: ${orderNotes || 'لا توجد'}
 -------------------
 ⏰ تم الإرسال من تطبيق مرافقة.`;
 
-    // Get first manager's phone if available
-    const manager = cateringManagers[0];
-    const phone = manager?.phone || '';
+    const phone = recipient.phone.replace(/\D/g, '');
 
-    // Create WhatsApp Link
-    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-
-    // Redirect
-    window.open(whatsappUrl, '_blank');
+    if (notificationChannel === 'whatsapp') {
+      const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    } else {
+      // SMS protocol
+      const smsUrl = `sms:${phone}${window.navigator.userAgent.match(/iPhone/i) ? '&' : '?'}body=${encodeURIComponent(message)}`;
+      window.location.href = smsUrl;
+    }
 
     setShowNotifyModal(false);
     setOrderNotes('');
@@ -127,6 +134,16 @@ const Dining: React.FC = () => {
   };
 
   const cateringManagers = users.filter(u => u.role === UserRole.CATERING_MANAGER);
+  const bursars = users.filter(u => u.role === UserRole.BURSAR);
+  const allRecipients = [...cateringManagers, ...bursars];
+
+  // Auto-select first recipient when modal opens
+  const handleOpenNotifyModal = () => {
+    if (allRecipients.length > 0 && !selectedRecipientId) {
+      setSelectedRecipientId(allRecipients[0].id);
+    }
+    setShowNotifyModal(true);
+  };
   const meals = getCurrentMeals();
 
   return (
@@ -148,11 +165,11 @@ const Dining: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           {canNotify && (
             <button
-              onClick={() => setShowNotifyModal(true)}
-              className="bg-orange-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-700 flex items-center gap-2 shadow-md transition-all animate-pulse hover:animate-none"
+              onClick={handleOpenNotifyModal}
+              className="bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-orange-700 flex items-center gap-2 shadow-lg hover:shadow-orange-200 transition-all active:scale-95"
             >
               <Send className="w-5 h-5" />
-              <span className="hidden sm:inline">{t('notify_kitchen')}</span>
+              <span>{t('notify_kitchen')}</span>
             </button>
           )}
 
@@ -270,9 +287,54 @@ const Dining: React.FC = () => {
 
             <div className="p-6 overflow-y-auto">
               <div className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex justify-between items-center">
-                  <span className="text-gray-600 font-bold">{t('daily_count')} (تلاميذ):</span>
-                  <span className="text-2xl font-bold text-gray-800">{calculateDailyCounts().present}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'المستلم' : 'Destinataire'}
+                    </label>
+                    <select
+                      value={selectedRecipientId}
+                      onChange={(e) => setSelectedRecipientId(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none"
+                    >
+                      {allRecipients.length > 0 ? (
+                        allRecipients.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.role === UserRole.CATERING_MANAGER ? (language === 'ar' ? 'مطعمة' : 'Restaur.') : (language === 'ar' ? 'مقتصد' : 'Econ.')})
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">{language === 'ar' ? 'لا يوجد مسؤول' : 'Aucun responsable'}</option>
+                      )}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                      {language === 'ar' ? 'وسيلة الإرسال' : 'Canal d\'envoi'}
+                    </label>
+                    <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setNotificationChannel('whatsapp')}
+                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${notificationChannel === 'whatsapp' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNotificationChannel('sms')}
+                        className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all ${notificationChannel === 'sms' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      >
+                        SMS
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex justify-between items-center">
+                  <span className="text-orange-800 font-bold">{t('daily_count')} (تلاميذ):</span>
+                  <span className="text-2xl font-bold text-orange-900">{calculateDailyCounts().present}</span>
                 </div>
 
                 <div>
@@ -340,10 +402,14 @@ const Dining: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSendOrder}
-                disabled={cateringManagers.length === 0}
-                className="flex-1 bg-orange-600 text-white font-bold py-3 rounded-xl hover:bg-orange-700 shadow-md transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!selectedRecipientId}
+                className={`flex-1 ${notificationChannel === 'whatsapp' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
               >
-                <Send className="w-5 h-5" />
+                {notificationChannel === 'whatsapp' ? (
+                  <MessageCircle className="w-5 h-5" />
+                ) : (
+                  <Phone className="w-5 h-5" />
+                )}
                 {t('send_order')}
               </button>
             </div>
