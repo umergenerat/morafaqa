@@ -1,0 +1,390 @@
+
+> morafaqah@0.1.0 lint
+> eslint . --report-unused-disable-directives --max-warnings 0
+
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\components\ImportModal.tsx
+   18:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  290:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  364:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\components\SaveControls.tsx
+  2:16  warning  'X' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\context\DataContext.tsx
+  165:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\context\DataContext.tsx:165:7
+  163 |     if (currentUser) {
+  164 |       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser));
+> 165 |       setIsAuthenticated(true);
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  166 |     } else {
+  167 |       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+  168 |       setIsAuthenticated(false);  react-hooks/set-state-in-effect
+  395:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-refresh/only-export-components
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\context\LanguageContext.tsx
+  329:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Academics.tsx
+    7:3   warning  'LineChart' is defined but never used     @typescript-eslint/no-unused-vars
+  413:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  413:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Activities.tsx
+  228:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  419:97  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  433:99  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx
+    2:65   warning  'MapPin' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+    2:127  warning  'ArrowLeftRight' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   48:37   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `getStatus`, but the source dependencies were [students, isParent, currentUser, dailySort, attendanceRecords, today]. Inferred different dependency than source.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:48:37
+  46 |
+  47 |   // Filter students for display (Main View)
+> 48 |   const displayedStudents = useMemo(() => {
+     |                                     ^^^^^^^
+> 49 |     const list = isParent
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |       ? students.filter(s => currentUser?.linkedStudentIds?.includes(s.id))
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 74 |     return list;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |   }, [students, isParent, currentUser, dailySort, attendanceRecords, today]);
+     | ^^^^ Could not preserve existing manual memoization
+  76 |
+  77 |   // ----------------------------------------------------------------------
+  78 |   // Enhanced Exit Logic                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/preserve-manual-memoization
+   48:37   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `getStatus`, but the source dependencies were [students, isParent, currentUser, dailySort, attendanceRecords, today]. Inferred different dependency than source.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:48:37
+  46 |
+  47 |   // Filter students for display (Main View)
+> 48 |   const displayedStudents = useMemo(() => {
+     |                                     ^^^^^^^
+> 49 |     const list = isParent
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 50 |       ? students.filter(s => currentUser?.linkedStudentIds?.includes(s.id))
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 74 |     return list;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |   }, [students, isParent, currentUser, dailySort, attendanceRecords, today]);
+     | ^^^^ Could not preserve existing manual memoization
+  76 |
+  77 |   // ----------------------------------------------------------------------
+  78 |   // Enhanced Exit Logic                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/preserve-manual-memoization
+   55:19   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   56:19   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+   75:6    warning  React Hook useMemo has a missing dependency: 'getStatus'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+   88:9    error    'result' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        prefer-const
+  107:19   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  108:19   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  365:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:365:22
+  363 |                 <thead className="bg-gray-100 border-b border-gray-200">
+  364 |                   <tr>
+> 365 |                     <SortHeader label="التلميذ" sortKey="student" activeConfig={dailySort} onSort={() => handleSort('student', 'daily')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  366 |                     <SortHeader label="الغرفة" sortKey="room" activeConfig={dailySort} onSort={() => handleSort('room', 'daily')} />
+  367 |                     <SortHeader label="الحالة" sortKey="status" activeConfig={dailySort} onSort={() => handleSort('status', 'daily')} />
+  368 |                     <th className="px-6 py-4 text-sm font-bold text-gray-700 whitespace-nowrap">ملاحظات</th>
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                                                                                                                                                             react-hooks/static-components
+  366:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:366:22
+  364 |                   <tr>
+  365 |                     <SortHeader label="التلميذ" sortKey="student" activeConfig={dailySort} onSort={() => handleSort('student', 'daily')} />
+> 366 |                     <SortHeader label="الغرفة" sortKey="room" activeConfig={dailySort} onSort={() => handleSort('room', 'daily')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  367 |                     <SortHeader label="الحالة" sortKey="status" activeConfig={dailySort} onSort={() => handleSort('status', 'daily')} />
+  368 |                     <th className="px-6 py-4 text-sm font-bold text-gray-700 whitespace-nowrap">ملاحظات</th>
+  369 |                   </tr>
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                                                                                                                                                                                                              react-hooks/static-components
+  367:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:367:22
+  365 |                     <SortHeader label="التلميذ" sortKey="student" activeConfig={dailySort} onSort={() => handleSort('student', 'daily')} />
+  366 |                     <SortHeader label="الغرفة" sortKey="room" activeConfig={dailySort} onSort={() => handleSort('room', 'daily')} />
+> 367 |                     <SortHeader label="الحالة" sortKey="status" activeConfig={dailySort} onSort={() => handleSort('status', 'daily')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  368 |                     <th className="px-6 py-4 text-sm font-bold text-gray-700 whitespace-nowrap">ملاحظات</th>
+  369 |                   </tr>
+  370 |                 </thead>
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                                                                                                                                                                                                            react-hooks/static-components
+  512:78   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  526:80   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  561:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:561:22
+  559 |                 <thead className="bg-emerald-50 border-b border-emerald-100">
+  560 |                   <tr>
+> 561 |                     <SortHeader label={t('students')} sortKey="student" activeConfig={exitSort} onSort={() => handleSort('student', 'exit')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  562 |                     <SortHeader label={t('exit_type')} sortKey="type" activeConfig={exitSort} onSort={() => handleSort('type', 'exit')} />
+  563 |                     <SortHeader label={t('start_date')} sortKey="startDate" activeConfig={exitSort} onSort={() => handleSort('startDate', 'exit')} />
+  564 |                     <SortHeader label={t('return_date')} sortKey="returnDate" activeConfig={exitSort} onSort={() => handleSort('returnDate', 'exit')} />
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                                                                                     react-hooks/static-components
+  562:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:562:22
+  560 |                   <tr>
+  561 |                     <SortHeader label={t('students')} sortKey="student" activeConfig={exitSort} onSort={() => handleSort('student', 'exit')} />
+> 562 |                     <SortHeader label={t('exit_type')} sortKey="type" activeConfig={exitSort} onSort={() => handleSort('type', 'exit')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  563 |                     <SortHeader label={t('start_date')} sortKey="startDate" activeConfig={exitSort} onSort={() => handleSort('startDate', 'exit')} />
+  564 |                     <SortHeader label={t('return_date')} sortKey="returnDate" activeConfig={exitSort} onSort={() => handleSort('returnDate', 'exit')} />
+  565 |                     <SortHeader label="حالة الخرجة" sortKey="status" activeConfig={exitSort} onSort={() => handleSort('status', 'exit')} />
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                       react-hooks/static-components
+  563:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:563:22
+  561 |                     <SortHeader label={t('students')} sortKey="student" activeConfig={exitSort} onSort={() => handleSort('student', 'exit')} />
+  562 |                     <SortHeader label={t('exit_type')} sortKey="type" activeConfig={exitSort} onSort={() => handleSort('type', 'exit')} />
+> 563 |                     <SortHeader label={t('start_date')} sortKey="startDate" activeConfig={exitSort} onSort={() => handleSort('startDate', 'exit')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  564 |                     <SortHeader label={t('return_date')} sortKey="returnDate" activeConfig={exitSort} onSort={() => handleSort('returnDate', 'exit')} />
+  565 |                     <SortHeader label="حالة الخرجة" sortKey="status" activeConfig={exitSort} onSort={() => handleSort('status', 'exit')} />
+  566 |                     <th className="px-6 py-4 text-sm font-bold text-emerald-900 whitespace-nowrap">{t('notes')}</th>
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">         react-hooks/static-components
+  564:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:564:22
+  562 |                     <SortHeader label={t('exit_type')} sortKey="type" activeConfig={exitSort} onSort={() => handleSort('type', 'exit')} />
+  563 |                     <SortHeader label={t('start_date')} sortKey="startDate" activeConfig={exitSort} onSort={() => handleSort('startDate', 'exit')} />
+> 564 |                     <SortHeader label={t('return_date')} sortKey="returnDate" activeConfig={exitSort} onSort={() => handleSort('returnDate', 'exit')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  565 |                     <SortHeader label="حالة الخرجة" sortKey="status" activeConfig={exitSort} onSort={() => handleSort('status', 'exit')} />
+  566 |                     <th className="px-6 py-4 text-sm font-bold text-emerald-900 whitespace-nowrap">{t('notes')}</th>
+  567 |                     {!isParent && <th className="px-6 py-4 text-sm font-bold text-emerald-900 w-20 print:hidden" data-html2canvas-ignore="true"></th>}
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">  react-hooks/static-components
+  565:22   error    Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:565:22
+  563 |                     <SortHeader label={t('start_date')} sortKey="startDate" activeConfig={exitSort} onSort={() => handleSort('startDate', 'exit')} />
+  564 |                     <SortHeader label={t('return_date')} sortKey="returnDate" activeConfig={exitSort} onSort={() => handleSort('returnDate', 'exit')} />
+> 565 |                     <SortHeader label="حالة الخرجة" sortKey="status" activeConfig={exitSort} onSort={() => handleSort('status', 'exit')} />
+      |                      ^^^^^^^^^^ This component is created during render
+  566 |                     <th className="px-6 py-4 text-sm font-bold text-emerald-900 whitespace-nowrap">{t('notes')}</th>
+  567 |                     {!isParent && <th className="px-6 py-4 text-sm font-bold text-emerald-900 w-20 print:hidden" data-html2canvas-ignore="true"></th>}
+  568 |                   </tr>
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx:268:22
+  266 |
+  267 |   // Helper Component for Sort Icon
+> 268 |   const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: {key: string, direction: 'asc' | 'desc'} | null, onSort: () => void }) => {
+      |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 269 |      return (
+      | ^^^^^^^^^^^^^
+> 270 |        <th 
+      …
+      | ^^^^^^^^^^^^^
+> 285 |      );
+      | ^^^^^^^^^^^^^
+> 286 |   };
+      | ^^^^ The component is created during render here
+  287 |
+  288 |   return (
+  289 |     <div className="space-y-6">                                                                                                                     react-hooks/static-components
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Behavior.tsx
+  118:10   warning  'COLORS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  315:75   warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  488:106  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Dashboard.tsx
+  16:63  warning  'Filter' is defined but never used                                                                                                                                                                                @typescript-eslint/no-unused-vars
+  17:18  warning  'Send' is defined but never used                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  27:7   warning  'COLORS' is assigned a value but never used                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  57:9   warning  The 'linkedStudentIds' logical expression could make the dependencies of useMemo Hook (at line 138) change on every render. To fix this, wrap the initialization of 'linkedStudentIds' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  57:9   warning  The 'linkedStudentIds' logical expression could make the dependencies of useMemo Hook (at line 156) change on every render. To fix this, wrap the initialization of 'linkedStudentIds' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Dining.tsx
+  2:57   warning  'Download' is defined but never used  @typescript-eslint/no-unused-vars
+  2:115  warning  'User' is defined but never used      @typescript-eslint/no-unused-vars
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Health.tsx
+  213:97  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Login.tsx
+  4:16  warning  'Mail' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Maintenance.tsx
+    5:70   warning  'Filter' is defined but never used        @typescript-eslint/no-unused-vars
+    5:86   warning  'Edit2' is defined but never used         @typescript-eslint/no-unused-vars
+  191:104  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  274:117  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:121  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\StudentList.tsx
+    3:17  warning  'Filter' is defined but never used                 @typescript-eslint/no-unused-vars
+    4:13  warning  'GraduationCap' is defined but never used          @typescript-eslint/no-unused-vars
+  159:9   warning  'getTopicIcon' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  569:68  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  576:80  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\services\geminiService.ts
+   50:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  177:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  182:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 65 problems (12 errors, 53 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+
