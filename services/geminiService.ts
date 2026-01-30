@@ -8,9 +8,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dis
 
 // Helper to get AI instance
 const getAiInstance = () => {
-  const key = process.env.API_KEY;
+  const key = import.meta.env.VITE_GEMINI_API_KEY;
   if (!key) {
-    console.error("API Key is missing in environment variables");
+    console.warn("VITE_GEMINI_API_KEY is missing in environment variables");
     return null;
   }
   return new GoogleGenAI({ apiKey: key });
@@ -40,10 +40,10 @@ const extractTextFromPDF = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = '';
-    
+
     // Limit to first 5 pages to avoid token limits for demo
     const maxPages = Math.min(pdf.numPages, 5);
-    
+
     for (let i = 1; i <= maxPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();
@@ -61,11 +61,11 @@ const extractTextFromExcel = async (file: File): Promise<string> => {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer);
-    
+
     // Read the first sheet
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
-    
+
     // Convert to JSON
     const jsonData = XLSX.utils.sheet_to_json(sheet);
     return JSON.stringify(jsonData, null, 2);
@@ -108,7 +108,7 @@ export const generateStudentReport = async (
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -149,7 +149,7 @@ export const draftParentMessage = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: `
         اكتب رسالة نصية قصيرة ومهنية (SMS/WhatsApp) لإرسالها إلى ولي أمر الطالب "${studentName}".
         الموضوع: ${topic === 'absence' ? 'غياب' : topic === 'health' ? 'حالة صحية طارئة' : topic === 'behavior' ? 'سلوك' : 'عام'}.
@@ -172,7 +172,7 @@ export const draftParentMessage = async (
 export type ImportContext = 'students' | 'health' | 'attendance' | 'academics';
 
 export const analyzeUploadedDocument = async (
-  file: File, 
+  file: File,
   context: ImportContext
 ): Promise<any> => {
   const ai = getAiInstance();
@@ -190,7 +190,7 @@ export const analyzeUploadedDocument = async (
     const extractedText = await extractTextFromPDF(file);
     promptContent = `Analyze the following text extracted from a PDF document:\n${extractedText}`;
   } else if (
-    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+    file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
     file.type === 'application/vnd.ms-excel' ||
     file.name.endsWith('.xlsx') ||
     file.name.endsWith('.csv')
@@ -203,7 +203,7 @@ export const analyzeUploadedDocument = async (
 
   // Specific instructions based on context
   let contextInstructions = '';
-  
+
   if (context === 'students') {
     contextInstructions = `
       Extract a list of students.
@@ -291,12 +291,12 @@ export const analyzeUploadedDocument = async (
 
   // Combine instructions
   const fullPrompt = `${systemInstructions}\n\n${promptContent}`;
-  
+
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: parts.length > 0 
-        ? { parts: [...parts, { text: systemInstructions }] } 
+      model: 'gemini-1.5-flash',
+      contents: parts.length > 0
+        ? { parts: [...parts, { text: systemInstructions }] }
         : fullPrompt,
       config: {
         responseMimeType: "application/json"
