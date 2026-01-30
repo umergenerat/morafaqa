@@ -1,5 +1,5 @@
 
-import { User, UserRole, Student, BehaviorRecord, HealthRecord, ActivityRecord, Meal, AcademicRecord, MaintenanceRequest } from './types';
+import { User, UserRole, Student, BehaviorRecord, HealthRecord, ActivityRecord, Meal, AcademicRecord, MaintenanceRequest, AttendanceRecord } from './types';
 
 // Admin Account - The entry point
 export const MOCK_USER: User = {
