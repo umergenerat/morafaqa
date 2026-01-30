@@ -120,6 +120,7 @@ interface DataContextType {
   hasUnsavedChanges: boolean;
   saveAllChanges: () => void;
   discardAllChanges: () => void;
+  resetData: () => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -371,6 +372,27 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetData = () => {
+    if (window.confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟ سيتم فقدان التغييرة الحالية.')) {
+      setStudents(MOCK_STUDENTS);
+      setUsers(DEFAULT_USERS_LIST);
+      setBehaviorRecords(MOCK_BEHAVIOR);
+      setHealthRecords(MOCK_HEALTH);
+      setAttendanceRecords(MOCK_ATTENDANCE);
+      setExitRecords([]);
+      setActivityRecords(MOCK_ACTIVITIES);
+      setAcademicRecords(MOCK_ACADEMICS);
+      setMaintenanceRequests(MOCK_MAINTENANCE);
+      setSchoolSettings(DEFAULT_SETTINGS);
+      setWeeklyMenus(DEFAULT_MENUS);
+
+      // Clear storage
+      Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+      setHasUnsavedChanges(false);
+      window.location.reload(); // Reload to ensure clean state
+    }
+  };
+
   return (
     <DataContext.Provider value={{
       students, users, behaviorRecords, healthRecords, attendanceRecords, exitRecords, activityRecords, weeklyMenus, academicRecords, maintenanceRequests,
@@ -385,7 +407,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,
       addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest,
-      hasUnsavedChanges, saveAllChanges, discardAllChanges
+      hasUnsavedChanges, saveAllChanges, discardAllChanges, resetData
     }}>
       {children}
     </DataContext.Provider>
