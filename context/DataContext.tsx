@@ -162,8 +162,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser));
+      setIsAuthenticated(true);
     } else {
       localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      setIsAuthenticated(false);
     }
   }, [currentUser]);
 
