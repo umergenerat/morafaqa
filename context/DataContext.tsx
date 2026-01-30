@@ -1,15 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Student, BehaviorRecord, HealthRecord, AttendanceRecord, ExitRecord, User, UserRole, SchoolSettings, ActivityRecord, WeeklyMenus, AcademicRecord, MaintenanceRequest } from '../types';
-import { 
-  MOCK_STUDENTS, 
-  MOCK_BEHAVIOR, 
-  MOCK_HEALTH, 
-  MOCK_USER, 
+import {
+  MOCK_STUDENTS,
+  MOCK_BEHAVIOR,
+  MOCK_HEALTH,
+  MOCK_USER,
   MOCK_BURSAR,
   MOCK_ACTIVITIES,
   MOCK_ACADEMICS,
   MOCK_MAINTENANCE,
+  MOCK_ATTENDANCE,
   INITIAL_MEALS_AR,
   INITIAL_MEALS_FR,
   INITIAL_RAMADAN_AR,
@@ -26,7 +27,7 @@ const STORAGE_KEYS = {
   EXITS: 'morafaka_exits',
   ACTIVITIES: 'morafaka_activities',
   ACADEMICS: 'morafaka_academics',
-  MAINTENANCE: 'morafaka_maintenance', 
+  MAINTENANCE: 'morafaka_maintenance',
   SETTINGS: 'morafaka_settings',
   MENUS: 'morafaka_menus',
   CURRENT_USER: 'morafaka_current_user'
@@ -72,11 +73,11 @@ interface DataContextType {
   attendanceRecords: AttendanceRecord[];
   exitRecords: ExitRecord[];
   activityRecords: ActivityRecord[];
-  academicRecords: AcademicRecord[]; 
-  maintenanceRequests: MaintenanceRequest[]; 
+  academicRecords: AcademicRecord[];
+  maintenanceRequests: MaintenanceRequest[];
   users: User[];
   weeklyMenus: WeeklyMenus;
-  
+
   // Settings
   schoolSettings: SchoolSettings;
   updateSchoolSettings: (settings: SchoolSettings) => void;
@@ -86,7 +87,7 @@ interface DataContextType {
   isAuthenticated: boolean;
   login: (userId: string) => void;
   logout: () => void;
-  setCurrentUser: (user: User) => void; 
+  setCurrentUser: (user: User) => void;
 
   // Actions
   addStudent: (student: Student) => void;
@@ -96,7 +97,7 @@ interface DataContextType {
   updateUser: (user: User) => void;
   deleteUser: (id: string) => void;
   addHealthRecord: (record: HealthRecord) => void;
-  updateHealthRecord: (record: HealthRecord) => void; 
+  updateHealthRecord: (record: HealthRecord) => void;
   deleteHealthRecord: (id: string) => void;
   addBehaviorRecord: (record: BehaviorRecord) => void;
   updateBehaviorRecord: (record: BehaviorRecord) => void;
@@ -111,9 +112,9 @@ interface DataContextType {
   addAcademicRecord: (record: AcademicRecord) => void;
   updateAcademicRecord: (record: AcademicRecord) => void;
   deleteAcademicRecord: (id: string) => void;
-  addMaintenanceRequest: (record: MaintenanceRequest) => void; 
-  updateMaintenanceRequest: (record: MaintenanceRequest) => void; 
-  deleteMaintenanceRequest: (id: string) => void; 
+  addMaintenanceRequest: (record: MaintenanceRequest) => void;
+  updateMaintenanceRequest: (record: MaintenanceRequest) => void;
+  deleteMaintenanceRequest: (id: string) => void;
 
   // Save/Discard Control
   hasUnsavedChanges: boolean;
@@ -127,13 +128,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Auth State with Persistence
   const [currentUser, setCurrentUserState] = useState<User | null>(() => loadData(STORAGE_KEYS.CURRENT_USER, null));
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
-  
+
   // Dirty Flag for Unsaved Changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Data State with Persistence Initialization
   const [students, setStudents] = useState<Student[]>(() => loadData(STORAGE_KEYS.STUDENTS, MOCK_STUDENTS));
-  
+
   const [users, setUsers] = useState<User[]>(() => {
     // Load users from storage
     const loadedUsers = loadData<User[]>(STORAGE_KEYS.USERS, DEFAULT_USERS_LIST);
@@ -148,15 +149,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [behaviorRecords, setBehaviorRecords] = useState<BehaviorRecord[]>(() => loadData(STORAGE_KEYS.BEHAVIOR, MOCK_BEHAVIOR));
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>(() => loadData(STORAGE_KEYS.HEALTH, MOCK_HEALTH));
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => loadData(STORAGE_KEYS.ATTENDANCE, []));
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => loadData(STORAGE_KEYS.ATTENDANCE, MOCK_ATTENDANCE));
   const [exitRecords, setExitRecords] = useState<ExitRecord[]>(() => loadData(STORAGE_KEYS.EXITS, []));
   const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>(() => loadData(STORAGE_KEYS.ACTIVITIES, MOCK_ACTIVITIES));
-  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>(() => loadData(STORAGE_KEYS.ACADEMICS, MOCK_ACADEMICS)); 
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>(() => loadData(STORAGE_KEYS.ACADEMICS, MOCK_ACADEMICS));
   const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>(() => loadData(STORAGE_KEYS.MAINTENANCE, MOCK_MAINTENANCE));
 
   const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => loadData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
   const [weeklyMenus, setWeeklyMenus] = useState<WeeklyMenus>(() => loadData(STORAGE_KEYS.MENUS, DEFAULT_MENUS));
-  
+
   // Persist Auth
   useEffect(() => {
     if (currentUser) {
@@ -178,16 +179,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(STORAGE_KEYS.EXITS, JSON.stringify(exitRecords));
     localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activityRecords));
     localStorage.setItem(STORAGE_KEYS.ACADEMICS, JSON.stringify(academicRecords));
-    localStorage.setItem(STORAGE_KEYS.MAINTENANCE, JSON.stringify(maintenanceRequests)); 
+    localStorage.setItem(STORAGE_KEYS.MAINTENANCE, JSON.stringify(maintenanceRequests));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(schoolSettings));
     localStorage.setItem(STORAGE_KEYS.MENUS, JSON.stringify(weeklyMenus));
-    
+
     setHasUnsavedChanges(false);
   };
 
   const discardAllChanges = () => {
     setStudents(loadData(STORAGE_KEYS.STUDENTS, MOCK_STUDENTS));
-    
+
     // Reset users but keep Admin synced
     const resetUsers = loadData(STORAGE_KEYS.USERS, DEFAULT_USERS_LIST);
     const adminIndex = resetUsers.findIndex((u: User) => u.id === 'admin_main');
@@ -198,11 +199,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setBehaviorRecords(loadData(STORAGE_KEYS.BEHAVIOR, MOCK_BEHAVIOR));
     setHealthRecords(loadData(STORAGE_KEYS.HEALTH, MOCK_HEALTH));
-    setAttendanceRecords(loadData(STORAGE_KEYS.ATTENDANCE, []));
+    setAttendanceRecords(loadData(STORAGE_KEYS.ATTENDANCE, MOCK_ATTENDANCE));
     setExitRecords(loadData(STORAGE_KEYS.EXITS, []));
     setActivityRecords(loadData(STORAGE_KEYS.ACTIVITIES, MOCK_ACTIVITIES));
     setAcademicRecords(loadData(STORAGE_KEYS.ACADEMICS, MOCK_ACADEMICS));
-    setMaintenanceRequests(loadData(STORAGE_KEYS.MAINTENANCE, MOCK_MAINTENANCE)); 
+    setMaintenanceRequests(loadData(STORAGE_KEYS.MAINTENANCE, MOCK_MAINTENANCE));
     setSchoolSettings(loadData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
     setWeeklyMenus(loadData(STORAGE_KEYS.MENUS, DEFAULT_MENUS));
 
@@ -313,12 +314,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setHasUnsavedChanges(true);
     }
   };
-  
+
   const addActivity = (activity: ActivityRecord) => {
     setActivityRecords(prev => [activity, ...prev]);
     setHasUnsavedChanges(true);
   };
-  
+
   const updateActivity = (updated: ActivityRecord) => {
     setActivityRecords(prev => prev.map(a => a.id === updated.id ? updated : a));
     setHasUnsavedChanges(true);
@@ -335,7 +336,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setWeeklyMenus(menus);
     setHasUnsavedChanges(true);
   };
-  
+
   const addAcademicRecord = (record: AcademicRecord) => {
     setAcademicRecords(prev => [record, ...prev]);
     setHasUnsavedChanges(true);
@@ -348,11 +349,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteAcademicRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل الدراسي؟')) {
-       setAcademicRecords(prev => prev.filter(r => r.id !== id));
-       setHasUnsavedChanges(true);
+      setAcademicRecords(prev => prev.filter(r => r.id !== id));
+      setHasUnsavedChanges(true);
     }
   };
-  
+
   const addMaintenanceRequest = (record: MaintenanceRequest) => {
     setMaintenanceRequests(prev => [record, ...prev]);
     setHasUnsavedChanges(true);
@@ -377,7 +378,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       currentUser, isAuthenticated, login, logout, setCurrentUser,
       addStudent, updateStudent, deleteStudent,
       addUser, updateUser, deleteUser,
-      addHealthRecord, updateHealthRecord, deleteHealthRecord, 
+      addHealthRecord, updateHealthRecord, deleteHealthRecord,
       addBehaviorRecord, updateBehaviorRecord, deleteBehaviorRecord,
       updateAttendance, addExitRecord, deleteExitRecord,
       addActivity, updateActivity, deleteActivity,

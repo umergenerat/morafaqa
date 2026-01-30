@@ -106,7 +106,14 @@ const Dashboard: React.FC = () => {
       const dateStr = d.toISOString().split('T')[0];
       const dayName = arabicDays[d.getDay()];
 
-      const dayRecords = attendanceRecords.filter((r: AttendanceRecord) => r.date === dateStr);
+      const dayRecords = attendanceRecords.filter((r: AttendanceRecord) => {
+        const isDate = r.date === dateStr;
+        if (isParent) {
+          return isDate && linkedStudentIds.includes(r.studentId);
+        }
+        return isDate;
+      });
+
       const presentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'present' || r.status === 'late').length;
       const absentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'absent').length;
       const total = presentCount + absentCount;
@@ -118,8 +125,7 @@ const Dashboard: React.FC = () => {
           غياب: Math.round((absentCount / total) * 100)
         });
       } else {
-        // Fallback for days with no data to keep the chart full/realistic looking during demo
-        // In a real production app, we might show 0 or skip
+        // Fallback to 0 if no records found for the day
         result.push({
           name: dayName,
           حضور: 0,
@@ -128,22 +134,26 @@ const Dashboard: React.FC = () => {
       }
     }
 
-    // If we have absolutely no data at all, return some mock data so the dashboard doesn't look empty
-    const hasAnyData = result.some(d => d.حضور > 0 || d.غياب > 0);
-    if (!hasAnyData) {
-      return [
-        { name: 'السبت', حضور: 95, غياب: 5 },
-        { name: 'الأحد', حضور: 98, غياب: 2 },
-        { name: 'الاثنين', حضور: 92, غياب: 8 },
-        { name: 'الثلاثاء', حضور: 96, غياب: 4 },
-        { name: 'الأربعاء', حضور: 94, غياب: 6 },
-        { name: 'الخميس', حضور: 90, غياب: 10 },
-        { name: 'الجمعة', حضور: 85, غياب: 15 },
-      ];
-    }
-
     return result;
-  }, [attendanceRecords]);
+  }, [attendanceRecords, isParent, linkedStudentIds]);
+
+  // Compute Today's Attendance Rate
+  const todayAttendanceRate = useMemo(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dayRecords = attendanceRecords.filter((r: AttendanceRecord) => {
+      const isToday = r.date === todayStr;
+      if (isParent) {
+        return isToday && linkedStudentIds.includes(r.studentId);
+      }
+      return isToday;
+    });
+
+    const total = dayRecords.length;
+    if (total === 0) return 0;
+
+    const presentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'present' || r.status === 'late').length;
+    return Math.round((presentCount / total) * 100);
+  }, [attendanceRecords, isParent, linkedStudentIds]);
 
   // Compute Alerts Feed
   const alerts = useMemo(() => {
@@ -244,7 +254,7 @@ const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 font-bold">نسبة الحضور اليوم</p>
-              <h3 className="text-3xl font-bold text-gray-800">100%</h3>
+              <h3 className="text-3xl font-bold text-gray-800">{todayAttendanceRate}%</h3>
             </div>
             <div className="p-3 bg-blue-100 rounded-full text-blue-600">
               <CheckCircle className="w-6 h-6" />

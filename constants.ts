@@ -264,3 +264,30 @@ export const INITIAL_RAMADAN_FR: Meal[] = [
   { id: '6', day: 'Samedi', ftour: 'Soupe Légumes + Dattes + Batbout farci', dinner: 'Pâtes Bolognaise', suhoor: 'Fromage + Fruits secs' },
   { id: '7', day: 'Dimanche', ftour: 'Harira + Dattes + Croissant + Lait', dinner: 'Tajine Poulet', suhoor: 'Raib + Dattes' }
 ];
+
+export const MOCK_ATTENDANCE: AttendanceRecord[] = [
+  // Sunday (assuming today is Friday or Saturday for demo purposes)
+  { id: 'att1', studentId: 's1', date: '2026-01-25', status: 'present', type: 'study' },
+  { id: 'att2', studentId: 's2', date: '2026-01-25', status: 'present', type: 'study' },
+  { id: 'att3', studentId: 's3', date: '2026-01-25', status: 'absent', type: 'study' },
+  // Monday
+  { id: 'att4', studentId: 's1', date: '2026-01-26', status: 'present', type: 'study' },
+  { id: 'att5', studentId: 's2', date: '2026-01-26', status: 'present', type: 'study' },
+  { id: 'att6', studentId: 's3', date: '2026-01-26', status: 'present', type: 'study' },
+  // Tuesday
+  { id: 'att7', studentId: 's1', date: '2026-01-27', status: 'present', type: 'study' },
+  { id: 'att8', studentId: 's2', date: '2026-01-27', status: 'late', type: 'study' },
+  { id: 'att9', studentId: 's3', date: '2026-01-27', status: 'present', type: 'study' },
+  // Wednesday
+  { id: 'att10', studentId: 's1', date: '2026-01-28', status: 'absent', type: 'study' },
+  { id: 'att11', studentId: 's2', date: '2026-01-28', status: 'present', type: 'study' },
+  { id: 'att12', studentId: 's3', date: '2026-01-28', status: 'present', type: 'study' },
+  // Thursday
+  { id: 'att13', studentId: 's1', date: '2026-01-29', status: 'present', type: 'study' },
+  { id: 'att14', studentId: 's2', date: '2026-01-29', status: 'present', type: 'study' },
+  { id: 'att15', studentId: 's3', date: '2026-01-29', status: 'present', type: 'study' },
+  // Friday (Today 2026-01-30)
+  { id: 'att16', studentId: 's1', date: '2026-01-30', status: 'present', type: 'study' },
+  { id: 'att17', studentId: 's2', date: '2026-01-30', status: 'present', type: 'study' },
+  { id: 'att18', studentId: 's3', date: '2026-01-30', status: 'late', type: 'study' },
+];
