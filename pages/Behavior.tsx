@@ -62,7 +62,7 @@ const Behavior: React.FC = () => {
 
    // Filter Logic
    const filteredRecords = useMemo(() => {
-      let records = behaviorRecords;
+      let records = behaviorRecords.filter(r => students.some(s => s.id === r.studentId));
 
       // Filter by Parent's kids
       if (isParent && currentUser) {

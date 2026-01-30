@@ -59,7 +59,7 @@ const Academics: React.FC = () => {
 
   // Filter Data Logic
   const filteredRecords = useMemo(() => {
-    let records = academicRecords.filter(r => r.semester === activeSemester);
+    let records = academicRecords.filter(r => r.semester === activeSemester && students.some(s => s.id === r.studentId));
 
     // Parent Filter
     if (isParent && currentUser) {
