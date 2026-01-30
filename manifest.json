@@ -1,0 +1,39 @@
+{
+  "short_name": "مرافقة",
+  "name": "منصة مرافقة الرقمية",
+  "description": "نظام متكامل لإدارة الأقسام الداخلية وتتبع المتعلمين",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/fluency/192/student-center.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/fluency/512/student-center.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "shortcuts": [
+    {
+      "name": "تسجيل حضور",
+      "short_name": "حضور",
+      "description": "صفحة تسجيل الحضور والغياب",
+      "url": "/#/attendance",
+      "icons": [{ "src": "https://img.icons8.com/fluency/96/checked-checkbox.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "إبلاغ المطعمة",
+      "short_name": "مطعمة",
+      "description": "إدارة الوجبات",
+      "url": "/#/dining",
+      "icons": [{ "src": "https://img.icons8.com/fluency/96/restaurant.png", "sizes": "96x96" }]
+    }
+  ]
+}

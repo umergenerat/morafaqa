@@ -1,0 +1,8 @@
+{
+  "name": "Morafaqah",
+  "description": "نظام رقمي متكامل لإدارة الأقسام الداخلية وتتبع المتعلمين (تربوياً، صحياً، وسلوكياً) مع ميزات الذكاء الاصطناعي.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
