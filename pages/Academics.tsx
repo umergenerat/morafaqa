@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { UserRole, AcademicRecord, SubjectGrade } from '../types';
+import * as Permissions from '../utils/permissions';
 import {
   LineChart,
   BarChart,
@@ -53,8 +54,8 @@ const Academics: React.FC = () => {
     subjects: []
   });
 
-  const isParent = currentUser?.role === UserRole.PARENT;
-  const isAdminOrTeacher = currentUser && [UserRole.ADMIN, UserRole.TEACHER, UserRole.SUPERVISOR].includes(currentUser.role);
+  const isParent = Permissions.isParent(currentUser);
+  const isAdminOrTeacher = Permissions.canEditAcademicRecords(currentUser);
 
   // Filter Data Logic
   const filteredRecords = useMemo(() => {

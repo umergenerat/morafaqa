@@ -3,6 +3,7 @@ import { Utensils, Coffee, Moon, ChefHat, Sun, Sunrise, Download, Edit2, Save, X
 import { useLanguage } from '../context/LanguageContext';
 import { useData } from '../context/DataContext';
 import { Meal, UserRole } from '../types';
+import * as Permissions from '../utils/permissions';
 import * as XLSX from 'xlsx';
 
 const Dining: React.FC = () => {
@@ -20,8 +21,9 @@ const Dining: React.FC = () => {
   const [extraMeals, setExtraMeals] = useState({ m1: 0, m2: 0, m3: 0 });
   const [orderNotes, setOrderNotes] = useState('');
 
-  const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR].includes(currentUser.role);
-  const isAdmin = currentUser?.role === UserRole.ADMIN;
+  const canEdit = Permissions.canManageDining(currentUser);
+  const isAdmin = Permissions.canManageUsers(currentUser);
+  const canNotify = Permissions.canNotifyKitchen(currentUser);
 
   const getCurrentMeals = () => {
     if (isRamadan) return language === 'ar' ? weeklyMenus.ramadanAr : weeklyMenus.ramadanFr;
@@ -96,18 +98,29 @@ const Dining: React.FC = () => {
     const m2Label = isRamadan ? t('dinner') : t('lunch');
     const m3Label = isRamadan ? t('suhoor') : t('dinner');
 
-    const message = `${t('message_sent')}!
+    const message = `* ${t('notify_kitchen')}* 👨‍🍳
+-------------------
+📊 * ${t('daily_count')}* (تلاميذ): ${baseCount}
 
-${t('daily_count')} (تلاميذ): ${baseCount}
-
-${t('extra_meals')}:
+📦 * ${t('extra_meals')}*:
 - ${m1Label}: +${extraMeals.m1}
 - ${m2Label}: +${extraMeals.m2}
 - ${m3Label}: +${extraMeals.m3}
 
-${t('notes')}: ${orderNotes}`;
+📝 * ${t('notes')}*: ${orderNotes || 'لا توجد'}
+-------------------
+⏰ تم الإرسال من تطبيق مرافقة.`;
 
-    alert(message);
+    // Get first manager's phone if available
+    const manager = cateringManagers[0];
+    const phone = manager?.phone || '';
+
+    // Create WhatsApp Link
+    const whatsappUrl = `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+
+    // Redirect
+    window.open(whatsappUrl, '_blank');
+
     setShowNotifyModal(false);
     setOrderNotes('');
     setExtraMeals({ m1: 0, m2: 0, m3: 0 });
@@ -133,7 +146,7 @@ ${t('notes')}: ${orderNotes}`;
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {isAdmin && (
+          {canNotify && (
             <button
               onClick={() => setShowNotifyModal(true)}
               className="bg-orange-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-700 flex items-center gap-2 shadow-md transition-all animate-pulse hover:animate-none"
@@ -166,8 +179,8 @@ ${t('notes')}: ${orderNotes}`;
           <button
             onClick={() => setIsRamadan(!isRamadan)}
             className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition-all shadow-sm ${isRamadan
-                ? 'bg-purple-600 text-white hover:bg-purple-700'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+              ? 'bg-purple-600 text-white hover:bg-purple-700'
+              : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
               }`}
           >
             {isRamadan ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5 text-orange-500" />}

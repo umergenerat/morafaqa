@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole } from '../types';
+import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole, User, Student } from '../types';
+import * as Permissions from '../utils/permissions';
 import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar } from 'lucide-react';
 
 const Maintenance: React.FC = () => {
@@ -17,17 +18,10 @@ const Maintenance: React.FC = () => {
         dateReported: new Date().toISOString().split('T')[0]
     });
 
-    // Permission Logic
-    // 1. Who can update status? (Admin, Bursar, Supervisor for dorms, Catering Manager for kitchen)
-    const canUpdateStatus = [
-        UserRole.ADMIN,
-        UserRole.BURSAR,
-        UserRole.SUPERVISOR,
-        UserRole.CATERING_MANAGER
-    ].includes(currentUser?.role || UserRole.PARENT);
-
-    // 2. Who can delete requests? (Only Admin and Bursar for data integrity)
-    const canDelete = currentUser && [UserRole.ADMIN, UserRole.BURSAR].includes(currentUser.role);
+    const canUpdateStatus = Permissions.canManageDining(currentUser); // Managers/Bursars/Admins
+    const canDelete = Permissions.canManageMaintenance(currentUser);
+    const canEdit = Permissions.canViewAllStudents(currentUser) && !Permissions.isParent(currentUser);
+    const isParent = Permissions.isParent(currentUser);
 
     const filteredRequests = maintenanceRequests.filter(req =>
         filterStatus === 'all' || req.status === filterStatus
@@ -189,12 +183,10 @@ const Maintenance: React.FC = () => {
                                         <select
                                             value={req.status}
                                             onChange={(e) => handleStatusChange(req, e.target.value as any)}
-                                            className={`
-                                         appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border focus:outline-none focus:ring-2 cursor-pointer
+                                            className={`appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border focus:outline-none focus:ring-2 cursor-pointer
                                          ${req.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200 focus:ring-red-200' : ''}
                                          ${req.status === 'in_progress' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-200' : ''}
-                                         ${req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-200' : ''}
-                                     `}
+                                         ${req.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 focus:ring-emerald-200' : ''}`}
                                         >
                                             <option value="pending">{t('pending_requests')}</option>
                                             <option value="in_progress">{t('in_progress')}</option>

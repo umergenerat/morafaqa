@@ -24,6 +24,7 @@ import {
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { ActivityRecord, ActivityType, UserRole } from '../types';
+import * as Permissions from '../utils/permissions';
 
 const Activities: React.FC = () => {
   const { t } = useLanguage();
@@ -47,7 +48,8 @@ const Activities: React.FC = () => {
   // Student Search in Modal
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
 
-  const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER].includes(currentUser.role);
+  const canEdit = Permissions.canManageBehavior(currentUser);
+  const isParent = Permissions.isParent(currentUser);
 
   const filteredActivities = activityRecords.filter(a => filterType === 'ALL' || a.type === filterType);
 
@@ -227,8 +229,8 @@ const Activities: React.FC = () => {
             key={type}
             onClick={() => setFilterType(type as any)}
             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${filterType === type
-                ? 'bg-gray-800 text-white border-gray-800 shadow-md'
-                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+              ? 'bg-gray-800 text-white border-gray-800 shadow-md'
+              : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
               }`}
           >
             {type === 'ALL' ? 'الكل' : t(type)}

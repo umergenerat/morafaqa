@@ -7,6 +7,7 @@ import {
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { Student, UserRole } from '../types';
+import * as Permissions from '../utils/permissions';
 import { generateStudentReport, draftParentMessage } from '../services/geminiService';
 import ImportModal from '../components/ImportModal';
 
@@ -45,13 +46,13 @@ const StudentList: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [aiReport, setAiReport] = useState<{ summary: string; recommendations: string[] } | null>(null);
 
-  const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR].includes(currentUser.role);
-  const isParent = currentUser?.role === UserRole.PARENT;
+  const canEdit = Permissions.canViewAllStudents(currentUser) && !Permissions.isParent(currentUser);
+  const isParent = Permissions.isParent(currentUser);
 
   // Filter logic
   const filteredStudents = students.filter(student => {
     // If parent, only show linked students
-    if (isParent && !currentUser?.linkedStudentIds?.includes(student.id)) return false;
+    if (isParent && currentUser && !currentUser.linkedStudentIds?.includes(student.id)) return false;
 
     return student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.academicId.includes(searchTerm);
@@ -254,140 +255,139 @@ const StudentList: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* Student Detail Panel - Fixed overlay on mobile, static on desktop */}
-          {selectedStudent && (
-            <div className={`
-              lg:col-span-1 bg-white lg:rounded-2xl shadow-lg border border-gray-200 flex flex-col 
-              fixed inset-0 z-[60] lg:static lg:z-auto lg:h-full overflow-hidden animate-slide-up lg:animate-none
-            `}>
-              {/* Header */}
-              <div className="relative h-32 bg-emerald-600 flex-shrink-0">
-                <button
-                  onClick={() => setSelectedStudent(null)}
-                  className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full backdrop-blur-sm transition-colors z-10 lg:p-1.5"
-                >
-                  {/* On mobile use arrow back if preferred, or X */}
-                  <span className="lg:hidden"><ArrowRight className={`w-6 h-6 ${language === 'ar' ? 'rotate-180' : ''}`} /></span>
-                  <span className="hidden lg:block"><X className="w-5 h-5" /></span>
-                </button>
-
-                {/* Edit/Delete Actions for Detail View */}
-                {canEdit && (
-                  <div className="absolute top-4 right-4 flex gap-2 z-10">
-                    <button
-                      onClick={(e) => handleOpenEdit(selectedStudent, e)}
-                      className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors"
-                      title="تعديل"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteClick(selectedStudent.id, e)}
-                      className="bg-white/20 hover:bg-red-500/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors"
-                      title="حذف"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                )}
-
-                <div className="absolute -bottom-10 right-1/2 translate-x-1/2">
-                  <img src={selectedStudent.photoUrl} alt="" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-white" />
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="pt-12 px-6 pb-6 overflow-y-auto flex-1 custom-scrollbar bg-white">
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800">{selectedStudent.fullName}</h2>
-                  <p className="text-sm text-gray-500 font-mono">{selectedStudent.academicId}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-gray-50 p-3 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 font-bold mb-1">المستوى</p>
-                      <p className="font-bold text-gray-800">{selectedStudent.grade}</p>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 font-bold mb-1">الغرفة</p>
-                      <p className="font-bold text-gray-800">{selectedStudent.roomNumber}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-400 font-bold mb-1">ولي الأمر</p>
-                    <p className="font-bold text-gray-800 dir-ltr text-right font-mono flex items-center gap-2 justify-end mb-1">
-                      {selectedStudent.guardianPhone}
-                      <Phone className="w-4 h-4 text-emerald-500" />
-                    </p>
-                    {selectedStudent.guardianAddress && (
-                      <p className="text-xs text-gray-600 border-t pt-1 mt-1">
-                        {selectedStudent.guardianAddress}
-                      </p>
-                    )}
-                    {selectedStudent.guardianId && (
-                      <p className="text-xs text-gray-400 mt-2 flex items-center gap-1 justify-end">
-                        CNIE: {selectedStudent.guardianId}
-                        <Fingerprint className="w-3 h-3" />
-                      </p>
-                    )}
-                  </div>
-
-                  {canEdit && (
-                    <div className="flex gap-2 mt-4">
-                      <a
-                        href={`tel:${selectedStudent.guardianPhone}`}
-                        className="flex-1 bg-emerald-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors shadow-md font-bold"
-                      >
-                        <Phone className="w-5 h-5" />
-                        اتصال
-                      </a>
-                      <button
-                        onClick={() => setShowMessageModal(true)}
-                        className="flex-1 bg-blue-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-md font-bold"
-                      >
-                        <MessageCircle className="w-5 h-5" />
-                        مراسلة
-                      </button>
-                    </div>
-                  )}
-
-                  {/* AI Report Section */}
-                  <div className="mt-6 border-t pt-4 pb-20 lg:pb-0">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-purple-600" />
-                        التقرير الذكي
-                      </h3>
-                      <button
-                        onClick={handleGenerateReport}
-                        disabled={isGeneratingReport}
-                        className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold hover:bg-purple-200 transition-colors disabled:opacity-50"
-                      >
-                        {isGeneratingReport ? 'جاري التحليل...' : 'توليد تقرير'}
-                      </button>
-                    </div>
-
-                    {aiReport && (
-                      <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm animate-fade-in">
-                        <p className="font-bold text-purple-900 mb-2">الملخص:</p>
-                        <p className="text-purple-800 mb-3 leading-relaxed">{aiReport.summary}</p>
-                        <p className="font-bold text-purple-900 mb-2">التوصيات:</p>
-                        <ul className="list-disc list-inside text-purple-800 space-y-1">
-                          {aiReport.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
+      {/* Student Detail Panel - Fixed overlay on mobile, static on desktop */}
+      {selectedStudent && (
+        <div className={`
+              lg:col-span-1 bg-white lg:rounded-2xl shadow-lg border border-gray-200 flex flex-col 
+              fixed inset-0 z-[60] lg:static lg:z-auto lg:h-full overflow-hidden animate-slide-up lg:animate-none
+            `}>
+          {/* Header */}
+          <div className="relative h-32 bg-emerald-600 flex-shrink-0">
+            <button
+              onClick={() => setSelectedStudent(null)}
+              className="absolute top-4 left-4 bg-white/20 hover:bg-white/30 text-white p-2 rounded-full backdrop-blur-sm transition-colors z-10 lg:p-1.5"
+            >
+              {/* On mobile use arrow back if preferred, or X */}
+              <span className="lg:hidden"><ArrowRight className={`w-6 h-6 ${language === 'ar' ? 'rotate-180' : ''}`} /></span>
+              <span className="hidden lg:block"><X className="w-5 h-5" /></span>
+            </button>
+
+            {/* Edit/Delete Actions for Detail View */}
+            {canEdit && (
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
+                <button
+                  onClick={(e) => handleOpenEdit(selectedStudent, e)}
+                  className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors"
+                  title="تعديل"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={(e) => handleDeleteClick(selectedStudent.id, e)}
+                  className="bg-white/20 hover:bg-red-500/50 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors"
+                  title="حذف"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            <div className="absolute -bottom-10 right-1/2 translate-x-1/2">
+              <img src={selectedStudent.photoUrl} alt="" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-white" />
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="pt-12 px-6 pb-6 overflow-y-auto flex-1 custom-scrollbar bg-white">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-gray-800">{selectedStudent.fullName}</h2>
+              <p className="text-sm text-gray-500 font-mono">{selectedStudent.academicId}</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 p-3 rounded-xl text-center">
+                  <p className="text-xs text-gray-400 font-bold mb-1">المستوى</p>
+                  <p className="font-bold text-gray-800">{selectedStudent.grade}</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-xl text-center">
+                  <p className="text-xs text-gray-400 font-bold mb-1">الغرفة</p>
+                  <p className="font-bold text-gray-800">{selectedStudent.roomNumber}</p>
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                <p className="text-xs text-gray-400 font-bold mb-1">ولي الأمر</p>
+                <p className="font-bold text-gray-800 dir-ltr text-right font-mono flex items-center gap-2 justify-end mb-1">
+                  {selectedStudent.guardianPhone}
+                  <Phone className="w-4 h-4 text-emerald-500" />
+                </p>
+                {selectedStudent.guardianAddress && (
+                  <p className="text-xs text-gray-600 border-t pt-1 mt-1">
+                    {selectedStudent.guardianAddress}
+                  </p>
+                )}
+                {selectedStudent.guardianId && (
+                  <p className="text-xs text-gray-400 mt-2 flex items-center gap-1 justify-end">
+                    CNIE: {selectedStudent.guardianId}
+                    <Fingerprint className="w-3 h-3" />
+                  </p>
+                )}
+              </div>
+
+              {canEdit && (
+                <div className="flex gap-2 mt-4">
+                  <a
+                    href={`tel:${selectedStudent.guardianPhone}`}
+                    className="flex-1 bg-emerald-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors shadow-md font-bold"
+                  >
+                    <Phone className="w-5 h-5" />
+                    اتصال
+                  </a>
+                  <button
+                    onClick={() => setShowMessageModal(true)}
+                    className="flex-1 bg-blue-600 text-white py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors shadow-md font-bold"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    مراسلة
+                  </button>
+                </div>
+              )}
+
+              {/* AI Report Section */}
+              <div className="mt-6 border-t pt-4 pb-20 lg:pb-0">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-600" />
+                    التقرير الذكي
+                  </h3>
+                  <button
+                    onClick={handleGenerateReport}
+                    disabled={isGeneratingReport}
+                    className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-bold hover:bg-purple-200 transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingReport ? 'جاري التحليل...' : 'توليد تقرير'}
+                  </button>
+                </div>
+
+                {aiReport && (
+                  <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm animate-fade-in">
+                    <p className="font-bold text-purple-900 mb-2">الملخص:</p>
+                    <p className="text-purple-800 mb-3 leading-relaxed">{aiReport.summary}</p>
+                    <p className="font-bold text-purple-900 mb-2">التوصيات:</p>
+                    <ul className="list-disc list-inside text-purple-800 space-y-1">
+                      {aiReport.recommendations.map((rec, i) => <li key={i}>{rec}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Floating Action Button for Adding Student (Mobile) */}
       {canEdit && !selectedStudent && (
         <button
@@ -438,6 +438,7 @@ const StudentList: React.FC = () => {
             </div>
             <div className="p-6 overflow-y-auto">
               <form className="space-y-4">
+                {/* Form fields here... */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">الاسم الكامل</label>
                   <input type="text" value={formData.fullName || ''} onChange={e => setFormData({ ...formData, fullName: e.target.value })} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" />
@@ -530,121 +531,129 @@ const StudentList: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Message Modal */}
-      {showMessageModal && selectedStudent && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col max-h-[90vh] overflow-hidden">
-            <div className="p-5 border-b bg-gradient-to-l from-blue-50 to-white flex justify-between items-start">
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-                  <MessageCircle className="w-6 h-6 text-blue-600" />
-                  مراسلة ولي الأمر
-                </h3>
-                <p className="text-sm text-gray-500 flex items-center gap-2">
-                  <span className="font-bold">{selectedStudent.fullName}</span>
-                  <span className="dir-ltr">{selectedStudent.guardianPhone}</span>
-                </p>
-              </div>
-              <button onClick={() => setShowMessageModal(false)} className="text-gray-400 hover:text-gray-600 bg-white p-1 rounded-full shadow-sm">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 overflow-y-auto custom-scrollbar">
-              <div className="space-y-6">
-                {/* Topic Selection */}
+      {
+        showMessageModal && selectedStudent && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col max-h-[90vh] overflow-hidden">
+              <div className="p-5 border-b bg-gradient-to-l from-blue-50 to-white flex justify-between items-start">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3">اختر موضوع الرسالة</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[
-                      { id: 'absence', label: 'غياب', icon: <Clock />, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
-                      { id: 'health', label: 'صحة', icon: <HeartPulse />, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
-                      { id: 'behavior', label: 'سلوك', icon: <AlertTriangle />, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-                      { id: 'general', label: 'عام', icon: <FileText />, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' }
-                    ].map((topic) => (
-                      <button
-                        key={topic.id}
-                        onClick={() => setMessageTopic(topic.id as any)}
-                        className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 ${messageTopic === topic.id
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-1">
+                    <MessageCircle className="w-6 h-6 text-blue-600" />
+                    مراسلة ولي الأمر
+                  </h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-2">
+                    <span className="font-bold">{selectedStudent.fullName}</span>
+                    <span className="dir-ltr">{selectedStudent.guardianPhone}</span>
+                  </p>
+                </div>
+                <button onClick={() => setShowMessageModal(false)} className="text-gray-400 hover:text-gray-600 bg-white p-1 rounded-full shadow-sm">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto custom-scrollbar">
+                <div className="space-y-6">
+                  {/* Topic Selection */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-3">اختر موضوع الرسالة</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { id: 'absence', label: 'غياب', icon: <Clock />, color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
+                        { id: 'health', label: 'صحة', icon: <HeartPulse />, color: 'text-pink-600', bg: 'bg-pink-50', border: 'border-pink-200' },
+                        { id: 'behavior', label: 'سلوك', icon: <AlertTriangle />, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
+                        { id: 'general', label: 'عام', icon: <FileText />, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' }
+                      ].map((topic) => (
+                        <button
+                          key={topic.id}
+                          onClick={() => setMessageTopic(topic.id as any)}
+                          className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all duration-200 ${messageTopic === topic.id
                             ? `${topic.bg} ${topic.border} ${topic.color} ring-1 ring-offset-1`
                             : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200 hover:bg-gray-50'
-                          }`}
-                      >
-                        <div className={messageTopic === topic.id ? '' : 'grayscale opacity-70'}>
-                          {React.cloneElement(topic.icon as React.ReactElement<any>, { className: "w-6 h-6" })}
-                        </div>
-                        <span className="text-xs font-bold">{topic.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Details Input */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">التفاصيل / الملاحظات</label>
-                  <textarea
-                    value={messageDetails}
-                    onChange={(e) => setMessageDetails(e.target.value)}
-                    className="w-full border border-gray-300 rounded-xl p-4 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none resize-none h-28 transition-colors"
-                    placeholder="اكتب تفاصيل الرسالة هنا..."
-                  />
-                </div>
-
-                {/* AI Generator Button */}
-                <button
-                  onClick={handleGenerateMessage}
-                  disabled={isGeneratingMsg || !messageDetails}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98]"
-                >
-                  {isGeneratingMsg ? (
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <Sparkles className="w-5 h-5 text-yellow-300" />
-                  )}
-                  {isGeneratingMsg ? 'جاري الصياغة...' : 'توليد الرسالة بالذكاء الاصطناعي'}
-                </button>
-
-                {/* Preview Bubble */}
-                {generatedMessage && (
-                  <div className="animate-fade-in">
-                    <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">معاينة الرسالة</label>
-                    <div className="bg-[#DCF8C6] p-4 rounded-xl rounded-tr-none border border-green-200 shadow-sm relative">
-                      <div className="absolute -right-2 top-0 w-4 h-4 bg-[#DCF8C6] border-t border-green-200 transform -rotate-45"></div>
-                      <textarea
-                        value={generatedMessage}
-                        onChange={(e) => setGeneratedMessage(e.target.value)}
-                        className="w-full bg-transparent border-none p-0 text-gray-800 text-sm focus:ring-0 resize-none h-32 leading-relaxed"
-                      />
+                            }`}
+                        >
+                          <div className={messageTopic === topic.id ? '' : 'grayscale opacity-70'}>
+                            {React.cloneElement(topic.icon as React.ReactElement<any>, { className: "w-6 h-6" })}
+                          </div>
+                          <span className="text-xs font-bold">{topic.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
-                )}
+
+                  {/* Details Input */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">التفاصيل / الملاحظات</label>
+                    <textarea
+                      value={messageDetails}
+                      onChange={(e) => setMessageDetails(e.target.value)}
+                      className="w-full border border-gray-300 rounded-xl p-4 bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none resize-none h-28 transition-colors"
+                      placeholder="اكتب تفاصيل الرسالة هنا..."
+                    />
+                  </div>
+
+                  {/* AI Generator Button */}
+                  <button
+                    onClick={handleGenerateMessage}
+                    disabled={isGeneratingMsg || !messageDetails}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-3 rounded-xl hover:shadow-lg hover:shadow-blue-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98]"
+                  >
+                    {isGeneratingMsg ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Sparkles className="w-5 h-5 text-yellow-300" />
+                    )}
+                    {isGeneratingMsg ? 'جاري الصياغة...' : 'توليد الرسالة بالذكاء الاصطناعي'}
+                  </button>
+
+                  {/* Preview Bubble */}
+                  {generatedMessage && (
+                    <div className="animate-fade-in">
+                      <label className="block text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">معاينة الرسالة</label>
+                      <div className="bg-[#DCF8C6] p-4 rounded-xl rounded-tr-none border border-green-200 shadow-sm relative">
+                        <div className="absolute -right-2 top-0 w-4 h-4 bg-[#DCF8C6] border-t border-green-200 transform -rotate-45"></div>
+                        <textarea
+                          value={generatedMessage}
+                          onChange={(e) => setGeneratedMessage(e.target.value)}
+                          className="w-full bg-transparent border-none p-0 text-gray-800 text-sm focus:ring-0 resize-none h-32 leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="p-5 border-t flex gap-3 bg-gray-50">
+                <button onClick={() => setShowMessageModal(false)} className="px-6 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors">
+                  {t('cancel')}
+                </button>
+                <a
+                  href={`https://wa.me/${selectedStudent.guardianPhone?.replace(/\s/g, '').replace(/^0/, '212')}?text=${encodeURIComponent(generatedMessage)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`flex-1 bg-[#25D366] text-white font-bold py-3 rounded-xl hover:bg-[#128C7E] shadow-md transition-colors flex justify-center items-center gap-2 ${!generatedMessage ? 'pointer-events-none opacity-50 grayscale' : ''}`}
+                >
+                  <Send className="w-5 h-5" />
+                  إرسال عبر WhatsApp
+                </a>
               </div>
             </div>
-
-            {/* Footer Actions */}
-            <div className="p-5 border-t flex gap-3 bg-gray-50">
-              <button onClick={() => setShowMessageModal(false)} className="px-6 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors">
-                {t('cancel')}
-              </button>
-              <a
-                href={`https://wa.me/${selectedStudent.guardianPhone?.replace(/\s/g, '').replace(/^0/, '212')}?text=${encodeURIComponent(generatedMessage)}`}
-                target="_blank"
-                rel="noreferrer"
-                className={`flex-1 bg-[#25D366] text-white font-bold py-3 rounded-xl hover:bg-[#128C7E] shadow-md transition-colors flex justify-center items-center gap-2 ${!generatedMessage ? 'pointer-events-none opacity-50 grayscale' : ''}`}
-              >
-                <Send className="w-5 h-5" />
-                إرسال عبر WhatsApp
-              </a>
-            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Import Modal */}
-      <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} title="استيراد لائحة التلاميذ" type="students" />
-    </div>
+      <ImportModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        title="استيراد لائحة التلاميذ"
+        type="students"
+      />
+    </div >
   );
 };
 

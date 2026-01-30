@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { User, UserRole } from '../types';
+import * as Permissions from '../utils/permissions';
 import { UserPlus, Edit2, Trash2, Check, Shield, Search, Filter, Lock, Plus, Users, AlertCircle, Fingerprint } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -22,7 +23,7 @@ const UserManagement: React.FC = () => {
   });
 
   // Security Check
-  if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+  if (!Permissions.canManageUsers(currentUser)) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500">
         <Shield className="w-16 h-16 mb-4 text-gray-300" />
@@ -182,10 +183,10 @@ const UserManagement: React.FC = () => {
                   <div>
                     <h3 className="font-bold text-gray-900">{user.name}</h3>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-700' :
-                        user.role === UserRole.BURSAR ? 'bg-amber-100 text-amber-700' :
-                          user.role === UserRole.PARENT ? 'bg-blue-100 text-blue-700' :
-                            user.role === UserRole.CATERING_MANAGER ? 'bg-orange-100 text-orange-700' :
-                              'bg-emerald-100 text-emerald-700'
+                      user.role === UserRole.BURSAR ? 'bg-amber-100 text-amber-700' :
+                        user.role === UserRole.PARENT ? 'bg-blue-100 text-blue-700' :
+                          user.role === UserRole.CATERING_MANAGER ? 'bg-orange-100 text-orange-700' :
+                            'bg-emerald-100 text-emerald-700'
                       }`}>
                       {user.role === UserRole.ADMIN ? t('admin') :
                         user.role === UserRole.BURSAR ? t('bursar') :
@@ -379,8 +380,8 @@ const UserManagement: React.FC = () => {
                             <div key={student.id}
                               onClick={() => toggleStudentLink(student.id)}
                               className={`flex items-center gap-3 p-2 rounded-xl border cursor-pointer transition-all relative overflow-hidden ${isSelected
-                                  ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500'
-                                  : 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
+                                ? 'bg-emerald-50 border-emerald-500 shadow-sm ring-1 ring-emerald-500'
+                                : 'bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50'
                                 }`}
                             >
                               <img src={student.photoUrl} className="w-9 h-9 rounded-full object-cover border border-gray-200 flex-shrink-0" alt="" />

@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { BehaviorRecord, UserRole } from '../types';
+import * as Permissions from '../utils/permissions';
 import {
    Star,
    Plus,
@@ -56,16 +57,16 @@ const Behavior: React.FC = () => {
       date: new Date().toISOString().split('T')[0]
    });
 
-   const canEdit = currentUser && [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.TEACHER].includes(currentUser.role);
-   const isParent = currentUser?.role === UserRole.PARENT;
+   const canEdit = Permissions.canManageBehavior(currentUser);
+   const isParent = Permissions.isParent(currentUser);
 
    // Filter Logic
    const filteredRecords = useMemo(() => {
       let records = behaviorRecords;
 
       // Filter by Parent's kids
-      if (isParent) {
-         const linkedIds = currentUser?.linkedStudentIds || [];
+      if (isParent && currentUser) {
+         const linkedIds = currentUser.linkedStudentIds || [];
          records = records.filter(r => linkedIds.includes(r.studentId));
       }
 
@@ -299,8 +300,8 @@ const Behavior: React.FC = () => {
                         key={type}
                         onClick={() => setFilterType(type)}
                         className={`px-3 py-1.5 rounded-md font-bold text-xs transition-all ${filterType === type
-                              ? 'bg-white text-gray-800 shadow-sm'
-                              : 'text-gray-500 hover:text-gray-700'
+                           ? 'bg-white text-gray-800 shadow-sm'
+                           : 'text-gray-500 hover:text-gray-700'
                            }`}
                      >
                         {type === 'ALL' ? 'الكل' : t(type === 'positive' ? 'positive_behavior' : 'negative_behavior')}
@@ -372,8 +373,8 @@ const Behavior: React.FC = () => {
 
                            <div className="mb-3">
                               <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${record.category === 'discipline' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                                    record.category === 'hygiene' ? 'bg-cyan-50 text-cyan-700 border-cyan-100' :
-                                       'bg-amber-50 text-amber-700 border-amber-100'
+                                 record.category === 'hygiene' ? 'bg-cyan-50 text-cyan-700 border-cyan-100' :
+                                    'bg-amber-50 text-amber-700 border-amber-100'
                                  }`}>
                                  {t(record.category)}
                               </span>
@@ -460,8 +461,8 @@ const Behavior: React.FC = () => {
                                     type="button"
                                     onClick={() => setFormData({ ...formData, type: 'positive' })}
                                     className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors flex items-center justify-center gap-1 ${formData.type === 'positive'
-                                          ? 'bg-emerald-100 border-emerald-500 text-emerald-700'
-                                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                       ? 'bg-emerald-100 border-emerald-500 text-emerald-700'
+                                       : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                        }`}
                                  >
                                     <ThumbsUp className="w-3.5 h-3.5" />
@@ -471,8 +472,8 @@ const Behavior: React.FC = () => {
                                     type="button"
                                     onClick={() => setFormData({ ...formData, type: 'negative' })}
                                     className={`flex-1 py-2 rounded-lg text-sm font-bold border transition-colors flex items-center justify-center gap-1 ${formData.type === 'negative'
-                                          ? 'bg-red-100 border-red-500 text-red-700'
-                                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                                       ? 'bg-red-100 border-red-500 text-red-700'
+                                       : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
                                        }`}
                                  >
                                     <ThumbsDown className="w-3.5 h-3.5" />
