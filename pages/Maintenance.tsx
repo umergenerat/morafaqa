@@ -95,12 +95,21 @@ const Maintenance: React.FC = () => {
             'other': 'أخرى'
         };
 
-        const message = `🔧 *طلب صيانة*
-📋 ${lastCreatedRequest.title}
-📍 ${lastCreatedRequest.location}
+        // Short reference from ID (last 4 chars)
+        const refId = lastCreatedRequest.id.slice(-4).toUpperCase();
+
+        const message = `🔧 *طلب صيانة جديد*
+
+▫️ المرجع: #${refId}
+▫️ ${lastCreatedRequest.title}
+▫️ المكان: ${lastCreatedRequest.location}${notificationNotes ? `\n▫️ ملاحظة: ${notificationNotes}` : ''}
+
 ⚡ ${priorityText}
-${notificationNotes ? `💬 ${notificationNotes}` : ''}
-👤 ${lastCreatedRequest.reporterName}`;
+
+👤 ${lastCreatedRequest.reporterName}
+📅 ${new Date(lastCreatedRequest.dateReported).toLocaleDateString('ar-MA')}
+
+_منصة مرافقة_`;
 
         const phone = recipient.phone.replace(/\D/g, '');
 
@@ -135,14 +144,21 @@ ${notificationNotes ? `💬 ${notificationNotes}` : ''}
             return;
         }
 
-        const priorityText = request.priority === 'high' ? '🔴 عاجل' :
-            request.priority === 'medium' ? '🟠 متوسط' : '🟢 عادي';
+        // Short reference from ID (last 4 chars)
+        const refId = request.id.slice(-4).toUpperCase();
+        const daysAgo = Math.floor((Date.now() - new Date(request.dateReported).getTime()) / (1000 * 60 * 60 * 24));
 
-        const message = `⏰ *تذكير بطلب صيانة معلق*
-📋 ${request.title}
-📍 ${request.location}
-⚡ ${priorityText}
-📅 ${request.dateReported}`;
+        const message = `⏰ *تذكير: طلب صيانة معلق*
+
+▫️ المرجع: #${refId}
+▫️ ${request.title}
+▫️ المكان: ${request.location}
+
+⏳ منذ ${daysAgo > 0 ? daysAgo + ' يوم' : 'اليوم'}
+
+المرجو المتابعة ✅
+
+_منصة مرافقة_`;
 
         const phone = bursar.phone.replace(/\D/g, '');
         const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
