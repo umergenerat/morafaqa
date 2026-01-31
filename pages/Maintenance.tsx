@@ -3,10 +3,10 @@ import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole, User, Student } from '../types';
 import * as Permissions from '../utils/permissions';
-import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar } from 'lucide-react';
+import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar, Send, MessageCircle, Phone } from 'lucide-react';
 
 const Maintenance: React.FC = () => {
-    const { maintenanceRequests, addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest, currentUser } = useData();
+    const { maintenanceRequests, addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest, currentUser, users } = useData();
     const { t } = useLanguage();
     const [showModal, setShowModal] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
@@ -17,6 +17,13 @@ const Maintenance: React.FC = () => {
         status: 'pending',
         dateReported: new Date().toISOString().split('T')[0]
     });
+
+    // Notification State
+    const [showNotifyModal, setShowNotifyModal] = useState(false);
+    const [lastCreatedRequest, setLastCreatedRequest] = useState<MaintenanceRequest | null>(null);
+    const [selectedRecipientId, setSelectedRecipientId] = useState('');
+    const [notificationChannel, setNotificationChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
+    const [notificationNotes, setNotificationNotes] = useState('');
 
     const canUpdateStatus = Permissions.canManageDining(currentUser); // Managers/Bursars/Admins
     const canDelete = Permissions.canManageMaintenance(currentUser);
@@ -57,7 +64,76 @@ const Maintenance: React.FC = () => {
 
         addMaintenanceRequest(request);
         setShowModal(false);
+
+        // Show notification modal after saving
+        setLastCreatedRequest(request);
+        // Auto-select first bursar if available
+        const bursars = users.filter(u => u.role === UserRole.BURSAR);
+        if (bursars.length > 0) {
+            setSelectedRecipientId(bursars[0].id);
+        }
+        setShowNotifyModal(true);
     };
+
+    const handleSendNotification = () => {
+        if (!lastCreatedRequest) return;
+
+        const recipient = users.find(u => u.id === selectedRecipientId);
+        if (!recipient || !recipient.phone) {
+            alert('المرجو اختيار مستلم برقم هاتف صحيح');
+            return;
+        }
+
+        const priorityText = lastCreatedRequest.priority === 'high' ? '🔴 عاجل' :
+            lastCreatedRequest.priority === 'medium' ? '🟠 متوسط' : '🟢 عادي';
+
+        const typeLabels: Record<MaintenanceType, string> = {
+            'plumbing': 'سباكة',
+            'electricity': 'كهرباء',
+            'cleaning': 'نظافة',
+            'equipment': 'معدات',
+            'other': 'أخرى'
+        };
+
+        const message = `*🔧 طلب صيانة جديد*
+-------------------
+📋 *العنوان*: ${lastCreatedRequest.title}
+📍 *المكان*: ${lastCreatedRequest.location}
+🔧 *النوع*: ${typeLabels[lastCreatedRequest.type]}
+⚡ *الأولوية*: ${priorityText}
+
+📝 *الوصف*: ${lastCreatedRequest.description || 'لا يوجد'}
+
+💬 *ملاحظات إضافية*: ${notificationNotes || 'لا توجد'}
+-------------------
+👤 مقدم الطلب: ${lastCreatedRequest.reporterName}
+📅 التاريخ: ${lastCreatedRequest.dateReported}
+⏰ تم الإرسال من تطبيق مرافقة.`;
+
+        const phone = recipient.phone.replace(/\D/g, '');
+
+        if (notificationChannel === 'whatsapp') {
+            const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        } else {
+            // SMS protocol
+            const smsUrl = `sms:${phone}${window.navigator.userAgent.match(/iPhone/i) ? '&' : '?'}body=${encodeURIComponent(message)}`;
+            window.location.href = smsUrl;
+        }
+
+        setShowNotifyModal(false);
+        setNotificationNotes('');
+        setLastCreatedRequest(null);
+    };
+
+    const handleCloseNotifyModal = () => {
+        setShowNotifyModal(false);
+        setNotificationNotes('');
+        setLastCreatedRequest(null);
+    };
+
+    // Get bursars for notification recipient list
+    const bursars = users.filter(u => u.role === UserRole.BURSAR);
 
     const handleStatusChange = (request: MaintenanceRequest, newStatus: MaintenanceRequest['status']) => {
         updateMaintenanceRequest({ ...request, status: newStatus });
@@ -133,8 +209,8 @@ const Maintenance: React.FC = () => {
                         key={status}
                         onClick={() => setFilterStatus(status)}
                         className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border whitespace-nowrap ${filterStatus === status
-                                ? 'bg-gray-800 text-white border-gray-800 shadow-md'
-                                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                            ? 'bg-gray-800 text-white border-gray-800 shadow-md'
+                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                             }`}
                     >
                         {status === 'all' ? 'الكل' : t(status)}
@@ -204,8 +280,8 @@ const Maintenance: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className={`px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 ${req.status === 'pending' ? 'text-red-600 bg-red-100' :
-                                            req.status === 'in_progress' ? 'text-amber-600 bg-amber-100' :
-                                                'text-emerald-600 bg-emerald-100'
+                                        req.status === 'in_progress' ? 'text-amber-600 bg-amber-100' :
+                                            'text-emerald-600 bg-emerald-100'
                                         }`}>
                                         {req.status === 'pending' && <Clock className="w-3 h-3" />}
                                         {req.status === 'in_progress' && <Wrench className="w-3 h-3" />}
@@ -331,6 +407,118 @@ const Maintenance: React.FC = () => {
                             </button>
                             <button onClick={handleSave} className="flex-1 bg-amber-600 text-white font-bold py-3 rounded-xl hover:bg-amber-700 shadow-md transition-colors">
                                 {t('save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notify Bursar Modal */}
+            {showNotifyModal && lastCreatedRequest && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col max-h-[90vh]">
+                        <div className="flex justify-between items-center p-6 border-b flex-shrink-0 bg-emerald-50 rounded-t-2xl">
+                            <h3 className="text-xl font-bold text-emerald-900 flex items-center gap-2">
+                                <Send className="w-6 h-6 text-emerald-600" />
+                                إرسال إشعار للمقتصد
+                            </h3>
+                            <button onClick={handleCloseNotifyModal} className="text-emerald-400 hover:text-emerald-600">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            <div className="space-y-6">
+                                {/* Request Summary */}
+                                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                    <h4 className="font-bold text-amber-900 mb-2">ملخص الطلب:</h4>
+                                    <p className="text-amber-800 text-sm">📋 {lastCreatedRequest.title}</p>
+                                    <p className="text-amber-700 text-xs mt-1">📍 {lastCreatedRequest.location}</p>
+                                </div>
+
+                                {/* Recipient Selection */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        اختيار المقتصد
+                                    </label>
+                                    <select
+                                        value={selectedRecipientId}
+                                        onChange={(e) => setSelectedRecipientId(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    >
+                                        {bursars.length > 0 ? (
+                                            bursars.map(u => (
+                                                <option key={u.id} value={u.id}>
+                                                    {u.name} {u.phone ? `(${u.phone})` : '(بدون هاتف)'}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option value="">لا يوجد مقتصد مسجل</option>
+                                        )}
+                                    </select>
+                                    {bursars.length === 0 && (
+                                        <p className="text-xs text-red-500 mt-2">يجب إضافة مقتصد في إدارة المستخدمين أولاً</p>
+                                    )}
+                                </div>
+
+                                {/* Notification Channel */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        وسيلة الإرسال
+                                    </label>
+                                    <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => setNotificationChannel('whatsapp')}
+                                            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${notificationChannel === 'whatsapp' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            <MessageCircle className="w-4 h-4" />
+                                            WhatsApp
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setNotificationChannel('sms')}
+                                            className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${notificationChannel === 'sms' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                                        >
+                                            <Phone className="w-4 h-4" />
+                                            SMS
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Additional Notes */}
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">ملاحظات إضافية</label>
+                                    <textarea
+                                        value={notificationNotes}
+                                        onChange={(e) => setNotificationNotes(e.target.value)}
+                                        placeholder="أي تفاصيل إضافية للمقتصد..."
+                                        className="w-full border border-gray-300 rounded-xl p-3 h-20 bg-white text-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none resize-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t flex gap-3 flex-shrink-0 bg-gray-50 rounded-b-2xl">
+                            <button
+                                type="button"
+                                onClick={handleCloseNotifyModal}
+                                className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors"
+                            >
+                                تخطي
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSendNotification}
+                                disabled={!selectedRecipientId || bursars.length === 0}
+                                className={`flex-1 ${notificationChannel === 'whatsapp' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold py-3 rounded-xl shadow-md transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                            >
+                                {notificationChannel === 'whatsapp' ? (
+                                    <MessageCircle className="w-5 h-5" />
+                                ) : (
+                                    <Phone className="w-5 h-5" />
+                                )}
+                                إرسال للمقتصد
                             </button>
                         </div>
                     </div>
