@@ -121,6 +121,9 @@ interface DataContextType {
   saveAllChanges: () => void;
   discardAllChanges: () => void;
   resetData: () => void;
+
+  // Connection State
+  isConnecting: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -129,6 +132,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Auth State with Persistence
   const [currentUser, setCurrentUserState] = useState<User | null>(() => loadData(STORAGE_KEYS.CURRENT_USER, null));
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
+  const [isConnecting, setIsConnecting] = useState(true);
 
   // Dirty Flag for Unsaved Changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -169,6 +173,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(false);
     }
   }, [currentUser]);
+
+  // Simulate Database Connection
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsConnecting(false);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- Save / Discard Logic ---
   const saveAllChanges = () => {
@@ -407,7 +419,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,
       addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest,
-      hasUnsavedChanges, saveAllChanges, discardAllChanges, resetData
+      hasUnsavedChanges, saveAllChanges, discardAllChanges, resetData,
+      isConnecting
     }}>
       {children}
     </DataContext.Provider>

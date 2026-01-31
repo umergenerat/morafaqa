@@ -4,9 +4,9 @@ import { useLanguage } from '../context/LanguageContext';
 import { Lock, Mail, GraduationCap, ArrowRight, Languages, AlertCircle, Eye, EyeOff, User } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const { users, login, schoolSettings } = useData();
+  const { users, login, schoolSettings, isConnecting } = useData();
   const { t, language, setLanguage, dir } = useLanguage();
-  
+
   const [identifier, setIdentifier] = useState(''); // Changed from email to identifier
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,10 +21,10 @@ const Login: React.FC = () => {
     // Simulate API network delay for realism
     setTimeout(() => {
       const input = identifier.trim().toLowerCase();
-      
+
       // Find user by email OR nationalId OR specific admin username
-      const user = users.find(u => 
-        (u.email && u.email.toLowerCase() === input) || 
+      const user = users.find(u =>
+        (u.email && u.email.toLowerCase() === input) ||
         (u.nationalId && u.nationalId.toLowerCase() === input) ||
         (input === 'aitloutou' && u.id === 'admin_main')
       );
@@ -44,47 +44,66 @@ const Login: React.FC = () => {
     setError('');
   };
 
+  if (isConnecting) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-emerald-900 font-tajawal text-white">
+        <div className="relative">
+          <div className="w-24 h-24 border-4 border-emerald-400/20 border-t-emerald-400 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <GraduationCap className="w-10 h-10 text-emerald-300 animate-pulse" />
+          </div>
+        </div>
+        <h2 className="mt-8 text-2xl font-bold animate-pulse">
+          {language === 'ar' ? 'جاري الاتصال بقاعدة البيانات...' : 'Connexion à la base de données...'}
+        </h2>
+        <p className="mt-2 text-emerald-200/60 text-sm">
+          {language === 'ar' ? 'يرجى الانتظار قليلاً' : 'Veuillez patienter un instant'}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen flex ${dir === 'rtl' ? 'flex-row' : 'flex-row-reverse'} bg-white overflow-hidden font-tajawal`} dir={dir}>
-      
+
       {/* Right Side: Visual & Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-emerald-900 overflow-hidden items-center justify-center">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center opacity-20 transform scale-105 hover:scale-100 transition-transform duration-1000"></div>
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/95 via-emerald-800/90 to-emerald-900/95"></div>
-        
+
         {/* Content */}
         <div className="relative z-10 text-white p-12 text-center max-w-xl">
           <div className="bg-white/10 p-6 rounded-3xl backdrop-blur-md border border-white/10 shadow-2xl mb-8 inline-block animate-float">
-             <GraduationCap className="w-20 h-20 text-emerald-300 mx-auto" />
+            <GraduationCap className="w-20 h-20 text-emerald-300 mx-auto" />
           </div>
           <h1 className="text-4xl font-bold mb-6 tracking-wide">{schoolSettings.institutionName}</h1>
           <p className="text-emerald-100 text-lg mb-10 leading-relaxed font-light opacity-90">
             نظام رقمي متكامل يجمع بين الإدارة التربوية، الرعاية الصحية، والتتبع السلوكي لضمان بيئة تعليمية متميزة.
           </p>
-          
+
           <div className="grid grid-cols-3 gap-4 text-xs font-medium text-emerald-200 border-t border-emerald-700/50 pt-8">
-             <div className="flex flex-col items-center gap-2">
-               <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-               <span>إدارة ذكية</span>
-             </div>
-             <div className="flex flex-col items-center gap-2">
-               <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-               <span>تتبع دقيق</span>
-             </div>
-             <div className="flex flex-col items-center gap-2">
-               <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
-               <span>رعاية شاملة</span>
-             </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <span>إدارة ذكية</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <span>تتبع دقيق</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
+              <span>رعاية شاملة</span>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Left Side: Login Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 md:p-12 bg-gray-50 relative">
-        
+
         {/* Language Switcher */}
-        <button 
+        <button
           onClick={toggleLanguage}
           className="absolute top-6 right-6 lg:left-6 lg:right-auto flex items-center gap-2 text-gray-500 hover:text-emerald-600 font-bold text-sm bg-white px-4 py-2 rounded-full shadow-sm border border-gray-200 transition-all hover:shadow-md"
         >
@@ -112,8 +131,8 @@ const Login: React.FC = () => {
               </label>
               <div className="relative group">
                 <User className="absolute top-3.5 right-3 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
                   placeholder="name@email.com / AB123456"
@@ -133,7 +152,7 @@ const Login: React.FC = () => {
               </div>
               <div className="relative group">
                 <Lock className="absolute top-3.5 right-3 w-5 h-5 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
-                <input 
+                <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -142,7 +161,7 @@ const Login: React.FC = () => {
                   dir="ltr"
                   required
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute top-3.5 left-3 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -152,8 +171,8 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
               className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 shadow-lg hover:shadow-emerald-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed transform active:scale-[0.98] mt-4"
             >
@@ -172,10 +191,10 @@ const Login: React.FC = () => {
 
           {/* Secure Footer */}
           <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-             <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
-               <Lock className="w-3 h-3" />
-               اتصال آمن ومحمي 256-bit SSL
-             </p>
+            <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
+              <Lock className="w-3 h-3" />
+              اتصال آمن ومحمي 256-bit SSL
+            </p>
           </div>
         </div>
       </div>
