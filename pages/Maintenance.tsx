@@ -95,20 +95,12 @@ const Maintenance: React.FC = () => {
             'other': 'أخرى'
         };
 
-        const message = `*🔧 طلب صيانة جديد*
--------------------
-📋 *العنوان*: ${lastCreatedRequest.title}
-📍 *المكان*: ${lastCreatedRequest.location}
-🔧 *النوع*: ${typeLabels[lastCreatedRequest.type]}
-⚡ *الأولوية*: ${priorityText}
-
-📝 *الوصف*: ${lastCreatedRequest.description || 'لا يوجد'}
-
-💬 *ملاحظات إضافية*: ${notificationNotes || 'لا توجد'}
--------------------
-👤 مقدم الطلب: ${lastCreatedRequest.reporterName}
-📅 التاريخ: ${lastCreatedRequest.dateReported}
-⏰ تم الإرسال من تطبيق مرافقة.`;
+        const message = `🔧 *طلب صيانة*
+📋 ${lastCreatedRequest.title}
+📍 ${lastCreatedRequest.location}
+⚡ ${priorityText}
+${notificationNotes ? `💬 ${notificationNotes}` : ''}
+👤 ${lastCreatedRequest.reporterName}`;
 
         const phone = recipient.phone.replace(/\D/g, '');
 
