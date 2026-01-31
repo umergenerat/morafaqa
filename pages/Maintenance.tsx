@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole, User, Student } from '../types';
 import * as Permissions from '../utils/permissions';
-import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar, Send, MessageCircle, Phone } from 'lucide-react';
+import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar, Send, MessageCircle, Phone, Bell } from 'lucide-react';
 
 const Maintenance: React.FC = () => {
     const { maintenanceRequests, addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest, currentUser, users } = useData();
@@ -126,6 +126,28 @@ ${notificationNotes ? `💬 ${notificationNotes}` : ''}
 
     // Get bursars for notification recipient list
     const bursars = users.filter(u => u.role === UserRole.BURSAR);
+
+    const handleSendReminder = (request: MaintenanceRequest) => {
+        // Find first bursar with phone
+        const bursar = bursars.find(b => b.phone);
+        if (!bursar || !bursar.phone) {
+            alert('لا يوجد مقتصد برقم هاتف صحيح');
+            return;
+        }
+
+        const priorityText = request.priority === 'high' ? '🔴 عاجل' :
+            request.priority === 'medium' ? '🟠 متوسط' : '🟢 عادي';
+
+        const message = `⏰ *تذكير بطلب صيانة معلق*
+📋 ${request.title}
+📍 ${request.location}
+⚡ ${priorityText}
+📅 ${request.dateReported}`;
+
+        const phone = bursar.phone.replace(/\D/g, '');
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    };
 
     const handleStatusChange = (request: MaintenanceRequest, newStatus: MaintenanceRequest['status']) => {
         updateMaintenanceRequest({ ...request, status: newStatus });
@@ -283,6 +305,15 @@ ${notificationNotes ? `💬 ${notificationNotes}` : ''}
                                 )}
 
                                 <div className="flex gap-2">
+                                    {req.status === 'pending' && bursars.length > 0 && (
+                                        <button
+                                            onClick={() => handleSendReminder(req)}
+                                            className="p-1.5 bg-white border hover:bg-amber-50 text-amber-500 rounded-lg shadow-sm transition-colors"
+                                            title="تذكير المقتصد"
+                                        >
+                                            <Bell className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     {canDelete && (
                                         <button
                                             onClick={() => deleteMaintenanceRequest(req.id)}
