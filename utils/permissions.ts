@@ -9,6 +9,10 @@ export const canManageUsers = (user: User | null): boolean => {
     return hasRole(user, [UserRole.ADMIN]);
 };
 
+export const canManageStudents = (user: User | null): boolean => {
+    return hasRole(user, [UserRole.ADMIN, UserRole.SUPERVISOR]);
+};
+
 export const canViewAcademicRecords = (user: User | null): boolean => {
     return hasRole(user, [UserRole.ADMIN, UserRole.TEACHER, UserRole.SUPERVISOR, UserRole.PARENT]);
 };

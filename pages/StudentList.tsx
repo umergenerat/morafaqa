@@ -46,7 +46,7 @@ const StudentList: React.FC = () => {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [aiReport, setAiReport] = useState<{ summary: string; recommendations: string[] } | null>(null);
 
-  const canEdit = Permissions.canViewAllStudents(currentUser) && !Permissions.isParent(currentUser);
+  const canEdit = Permissions.canManageStudents(currentUser);
   const isParent = Permissions.isParent(currentUser);
 
   // Filter logic
