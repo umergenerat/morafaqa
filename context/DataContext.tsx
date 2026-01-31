@@ -1,5 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { Student, BehaviorRecord, HealthRecord, AttendanceRecord, ExitRecord, User, UserRole, SchoolSettings, ActivityRecord, WeeklyMenus, AcademicRecord, MaintenanceRequest } from '../types';
 import {
   MOCK_STUDENTS,
@@ -129,98 +129,136 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Auth State with Persistence
-  const [currentUser, setCurrentUserState] = useState<User | null>(() => loadData(STORAGE_KEYS.CURRENT_USER, null));
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
+  // Connection & Loading State
   const [isConnecting, setIsConnecting] = useState(true);
+  const [isMockMode, setIsMockMode] = useState(false);
+
+  // Auth State
+  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('morafaka_session_user');
+      return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!currentUser);
 
   // Dirty Flag for Unsaved Changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  // Data State with Persistence Initialization
-  const [students, setStudents] = useState<Student[]>(() => loadData(STORAGE_KEYS.STUDENTS, MOCK_STUDENTS));
+  // Data State
+  const [students, setStudents] = useState<Student[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [behaviorRecords, setBehaviorRecords] = useState<BehaviorRecord[]>([]);
+  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [exitRecords, setExitRecords] = useState<ExitRecord[]>([]);
+  const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>([]);
+  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>([]);
+  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>([]);
+  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(DEFAULT_SETTINGS);
+  const [weeklyMenus, setWeeklyMenus] = useState<WeeklyMenus>(DEFAULT_MENUS);
 
-  const [users, setUsers] = useState<User[]>(() => {
-    // Load users from storage
-    const loadedUsers = loadData<User[]>(STORAGE_KEYS.USERS, DEFAULT_USERS_LIST);
-    const adminIndex = loadedUsers.findIndex(u => u.id === 'admin_main');
-    if (adminIndex !== -1) {
-      loadedUsers[adminIndex] = { ...loadedUsers[adminIndex], ...MOCK_USER };
-    } else {
-      loadedUsers.unshift(MOCK_USER);
-    }
-    return loadedUsers;
-  });
-
-  const [behaviorRecords, setBehaviorRecords] = useState<BehaviorRecord[]>(() => loadData(STORAGE_KEYS.BEHAVIOR, MOCK_BEHAVIOR));
-  const [healthRecords, setHealthRecords] = useState<HealthRecord[]>(() => loadData(STORAGE_KEYS.HEALTH, MOCK_HEALTH));
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(() => loadData(STORAGE_KEYS.ATTENDANCE, MOCK_ATTENDANCE));
-  const [exitRecords, setExitRecords] = useState<ExitRecord[]>(() => loadData(STORAGE_KEYS.EXITS, []));
-  const [activityRecords, setActivityRecords] = useState<ActivityRecord[]>(() => loadData(STORAGE_KEYS.ACTIVITIES, MOCK_ACTIVITIES));
-  const [academicRecords, setAcademicRecords] = useState<AcademicRecord[]>(() => loadData(STORAGE_KEYS.ACADEMICS, MOCK_ACADEMICS));
-  const [maintenanceRequests, setMaintenanceRequests] = useState<MaintenanceRequest[]>(() => loadData(STORAGE_KEYS.MAINTENANCE, MOCK_MAINTENANCE));
-
-  const [schoolSettings, setSchoolSettings] = useState<SchoolSettings>(() => loadData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
-  const [weeklyMenus, setWeeklyMenus] = useState<WeeklyMenus>(() => loadData(STORAGE_KEYS.MENUS, DEFAULT_MENUS));
-
-  // Persist Auth
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser));
-      setIsAuthenticated(true);
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-      setIsAuthenticated(false);
-    }
-  }, [currentUser]);
-
-  // Simulate Database Connection
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsConnecting(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // --- Save / Discard Logic ---
-  const saveAllChanges = () => {
-    localStorage.setItem(STORAGE_KEYS.STUDENTS, JSON.stringify(students));
-    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    localStorage.setItem(STORAGE_KEYS.BEHAVIOR, JSON.stringify(behaviorRecords));
-    localStorage.setItem(STORAGE_KEYS.HEALTH, JSON.stringify(healthRecords));
-    localStorage.setItem(STORAGE_KEYS.ATTENDANCE, JSON.stringify(attendanceRecords));
-    localStorage.setItem(STORAGE_KEYS.EXITS, JSON.stringify(exitRecords));
-    localStorage.setItem(STORAGE_KEYS.ACTIVITIES, JSON.stringify(activityRecords));
-    localStorage.setItem(STORAGE_KEYS.ACADEMICS, JSON.stringify(academicRecords));
-    localStorage.setItem(STORAGE_KEYS.MAINTENANCE, JSON.stringify(maintenanceRequests));
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(schoolSettings));
-    localStorage.setItem(STORAGE_KEYS.MENUS, JSON.stringify(weeklyMenus));
-
-    setHasUnsavedChanges(false);
+  const loadMockData = () => {
+    setUsers(DEFAULT_USERS_LIST);
+    setStudents(MOCK_STUDENTS);
+    setBehaviorRecords(MOCK_BEHAVIOR);
+    setHealthRecords(MOCK_HEALTH);
+    setAttendanceRecords(MOCK_ATTENDANCE);
+    setActivityRecords(MOCK_ACTIVITIES);
+    setAcademicRecords(MOCK_ACADEMICS);
+    setMaintenanceRequests(MOCK_MAINTENANCE);
   };
 
-  const discardAllChanges = () => {
-    setStudents(loadData(STORAGE_KEYS.STUDENTS, MOCK_STUDENTS));
+  // --- Initial Data Fetch & Connection Simulation ---
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsConnecting(true);
 
-    // Reset users but keep Admin synced
-    const resetUsers = loadData(STORAGE_KEYS.USERS, DEFAULT_USERS_LIST);
-    const adminIndex = resetUsers.findIndex((u: User) => u.id === 'admin_main');
-    if (adminIndex !== -1) {
-      resetUsers[adminIndex] = { ...resetUsers[adminIndex], ...MOCK_USER };
+      try {
+        // 1. Connection Probe
+        const { error: probeError } = await supabase.from('settings').select('id').limit(1).maybeSingle();
+
+        if (probeError && (probeError.message.includes('fetch') || probeError.message.includes('Failed to fetch'))) {
+          throw new Error("Connection failed");
+        }
+
+        // 2. Fetch All Tables in Parallel
+        const [
+          sRes, uRes, setRes, bRes, hRes, aRes, eRes, actRes, acaRes, mRes
+        ] = await Promise.all([
+          supabase.from('students').select('*'),
+          supabase.from('users').select('*'),
+          supabase.from('settings').select('*').limit(1).maybeSingle(),
+          supabase.from('behavior_records').select('*'),
+          supabase.from('health_records').select('*'),
+          supabase.from('attendance_records').select('*'),
+          supabase.from('exit_records').select('*'),
+          supabase.from('activity_records').select('*'),
+          supabase.from('academic_records').select('*'),
+          supabase.from('maintenance_requests').select('*')
+        ]);
+
+        if (sRes.error) throw sRes.error;
+
+        // Set State
+        if (sRes.data) setStudents(sRes.data);
+        if (uRes.data) setUsers(uRes.data.length > 0 ? uRes.data : DEFAULT_USERS_LIST);
+
+        if (setRes.data) {
+          setSchoolSettings({
+            institutionName: setRes.data.institutionName || DEFAULT_SETTINGS.institutionName,
+            schoolYear: setRes.data.schoolYear || DEFAULT_SETTINGS.schoolYear
+          });
+          if (setRes.data.weeklyMenus) {
+            setWeeklyMenus(setRes.data.weeklyMenus);
+          }
+        }
+
+        if (bRes.data) setBehaviorRecords(bRes.data);
+        if (hRes.data) setHealthRecords(hRes.data);
+        if (aRes.data) setAttendanceRecords(aRes.data);
+        if (eRes.data) setExitRecords(eRes.data);
+        if (actRes.data) setActivityRecords(actRes.data);
+        if (acaRes.data) setAcademicRecords(acaRes.data);
+        if (mRes.data) setMaintenanceRequests(mRes.data);
+
+        // Fallback for empty DB
+        if ((!uRes.data || uRes.data.length === 0) && (!sRes.data || sRes.data.length === 0)) {
+          loadMockData();
+        }
+
+      } catch (error: any) {
+        console.warn("Falling back to Mock Mode:", error.message);
+        setIsMockMode(true);
+        loadMockData();
+      } finally {
+        setTimeout(() => setIsConnecting(false), 1000); // Small extra delay for UX smoothness
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // --- Supabase Sync Helper ---
+  const syncSupabase = async (table: string, action: 'insert' | 'update' | 'delete', data: any, id?: string) => {
+    if (isMockMode) return;
+
+    try {
+      let result;
+      if (action === 'insert') {
+        result = await supabase.from(table).insert([data]);
+      } else if (action === 'update' && id) {
+        result = await supabase.from(table).update(data).eq('id', id);
+      } else if (action === 'delete' && id) {
+        result = await supabase.from(table).delete().eq('id', id);
+      }
+
+      if (result?.error) console.error(`Sync error [${table}]:`, result.error.message);
+    } catch (e: any) {
+      console.error(`System error syncing ${table}:`, e.message);
     }
-    setUsers(resetUsers);
-
-    setBehaviorRecords(loadData(STORAGE_KEYS.BEHAVIOR, MOCK_BEHAVIOR));
-    setHealthRecords(loadData(STORAGE_KEYS.HEALTH, MOCK_HEALTH));
-    setAttendanceRecords(loadData(STORAGE_KEYS.ATTENDANCE, MOCK_ATTENDANCE));
-    setExitRecords(loadData(STORAGE_KEYS.EXITS, []));
-    setActivityRecords(loadData(STORAGE_KEYS.ACTIVITIES, MOCK_ACTIVITIES));
-    setAcademicRecords(loadData(STORAGE_KEYS.ACADEMICS, MOCK_ACADEMICS));
-    setMaintenanceRequests(loadData(STORAGE_KEYS.MAINTENANCE, MOCK_MAINTENANCE));
-    setSchoolSettings(loadData(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS));
-    setWeeklyMenus(loadData(STORAGE_KEYS.MENUS, DEFAULT_MENUS));
-
-    setHasUnsavedChanges(false);
   };
 
   // --- Auth Operations ---
@@ -228,180 +266,160 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = users.find(u => u.id === userId);
     if (user) {
       setCurrentUserState(user);
+      setIsAuthenticated(true);
+      sessionStorage.setItem('morafaka_session_user', JSON.stringify(user));
     }
   };
 
   const logout = () => {
     setCurrentUserState(null);
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('morafaka_session_user');
   };
 
   const setCurrentUser = (user: User) => {
     setCurrentUserState(user);
+    sessionStorage.setItem('morafaka_session_user', JSON.stringify(user));
   };
 
-  const updateSchoolSettings = (settings: SchoolSettings) => {
+  const updateSchoolSettings = async (settings: SchoolSettings) => {
     setSchoolSettings(settings);
-    setHasUnsavedChanges(true);
+    syncSupabase('settings', 'update', settings, 'current'); // Assuming a 'current' id or logic on backend
   };
 
-  // --- Data Operations (All trigger setHasUnsavedChanges(true)) ---
+  const saveAllChanges = () => { setHasUnsavedChanges(false); };
+  const discardAllChanges = () => { window.location.reload(); };
+
+  // --- Data Operations ---
   const addStudent = (student: Student) => {
     setStudents(prev => [...prev, student]);
-    setHasUnsavedChanges(true);
+    syncSupabase('students', 'insert', student);
   };
   const updateStudent = (updated: Student) => {
     setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
-    setHasUnsavedChanges(true);
+    syncSupabase('students', 'update', updated, updated.id);
   };
   const deleteStudent = (id: string) => {
     setStudents(prev => prev.filter(s => s.id !== id));
-    setBehaviorRecords(prev => prev.filter(b => b.studentId !== id));
-    setHealthRecords(prev => prev.filter(h => h.studentId !== id));
-    setExitRecords(prev => prev.filter(e => e.studentId !== id));
-    setAcademicRecords(prev => prev.filter(a => a.studentId !== id));
-    setHasUnsavedChanges(true);
+    syncSupabase('students', 'delete', null, id);
   };
   const addUser = (user: User) => {
     setUsers(prev => [...prev, user]);
-    setHasUnsavedChanges(true);
+    syncSupabase('users', 'insert', user);
   };
   const updateUser = (updated: User) => {
     setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
-    if (currentUser && currentUser.id === updated.id) setCurrentUserState(updated);
-    setHasUnsavedChanges(true);
+    if (currentUser && currentUser.id === updated.id) setCurrentUser(updated);
+    syncSupabase('users', 'update', updated, updated.id);
   };
   const deleteUser = (id: string) => {
     if (window.confirm('تأكيد حذف المستخدم؟')) {
       setUsers(prev => prev.filter(u => u.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('users', 'delete', null, id);
     }
   };
   const addHealthRecord = (record: HealthRecord) => {
     setHealthRecords(prev => [record, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('health_records', 'insert', record);
   };
   const updateHealthRecord = (record: HealthRecord) => {
     setHealthRecords(prev => prev.map(h => h.id === record.id ? record : h));
-    setHasUnsavedChanges(true);
+    syncSupabase('health_records', 'update', record, record.id);
   };
   const deleteHealthRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل الصحي؟')) {
       setHealthRecords(prev => prev.filter(h => h.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('health_records', 'delete', null, id);
     }
   };
   const addBehaviorRecord = (record: BehaviorRecord) => {
     setBehaviorRecords(prev => [record, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('behavior_records', 'insert', record);
   };
   const updateBehaviorRecord = (record: BehaviorRecord) => {
     setBehaviorRecords(prev => prev.map(b => b.id === record.id ? record : b));
-    setHasUnsavedChanges(true);
+    syncSupabase('behavior_records', 'update', record, record.id);
   };
   const deleteBehaviorRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل السلوكي؟')) {
       setBehaviorRecords(prev => prev.filter(b => b.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('behavior_records', 'delete', null, id);
     }
   };
-  const updateAttendance = (studentId: string, status: 'present' | 'absent' | 'late') => {
+  const updateAttendance = async (studentId: string, status: 'present' | 'absent' | 'late') => {
     const today = new Date().toISOString().split('T')[0];
-    setAttendanceRecords(prev => {
-      const idx = prev.findIndex(a => a.studentId === studentId && a.date === today);
-      if (idx >= 0) {
-        const updated = [...prev];
-        updated[idx] = { ...updated[idx], status };
-        return updated;
-      }
-      return [...prev, { id: crypto.randomUUID(), studentId, date: today, status, type: 'study' }];
-    });
-    setHasUnsavedChanges(true);
+    const existing = attendanceRecords.find(a => a.studentId === studentId && a.date === today);
+    let newRecord: AttendanceRecord;
+
+    if (existing) {
+      newRecord = { ...existing, status };
+      setAttendanceRecords(prev => prev.map(a => a.id === existing.id ? newRecord : a));
+      syncSupabase('attendance_records', 'update', newRecord, existing.id);
+    } else {
+      newRecord = { id: crypto.randomUUID(), studentId, date: today, status, type: 'study' };
+      setAttendanceRecords(prev => [...prev, newRecord]);
+      syncSupabase('attendance_records', 'insert', newRecord);
+    }
   };
   const addExitRecord = (record: ExitRecord) => {
     setExitRecords(prev => [record, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('exit_records', 'insert', record);
   };
   const deleteExitRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف سجل الخروج هذا؟')) {
       setExitRecords(prev => prev.filter(e => e.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('exit_records', 'delete', null, id);
     }
   };
-
   const addActivity = (activity: ActivityRecord) => {
     setActivityRecords(prev => [activity, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('activity_records', 'insert', activity);
   };
-
   const updateActivity = (updated: ActivityRecord) => {
     setActivityRecords(prev => prev.map(a => a.id === updated.id ? updated : a));
-    setHasUnsavedChanges(true);
+    syncSupabase('activity_records', 'update', updated, updated.id);
   };
-
   const deleteActivity = (id: string) => {
     if (window.confirm('تأكيد حذف النشاط؟')) {
       setActivityRecords(prev => prev.filter(a => a.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('activity_records', 'delete', null, id);
     }
   };
-
-  const updateWeeklyMenus = (menus: WeeklyMenus) => {
+  const updateWeeklyMenus = async (menus: WeeklyMenus) => {
     setWeeklyMenus(menus);
-    setHasUnsavedChanges(true);
+    syncSupabase('settings', 'update', { weeklyMenus: menus }, 'current');
   };
-
   const addAcademicRecord = (record: AcademicRecord) => {
     setAcademicRecords(prev => [record, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('academic_records', 'insert', record);
   };
-
   const updateAcademicRecord = (record: AcademicRecord) => {
     setAcademicRecords(prev => prev.map(r => r.id === record.id ? record : r));
-    setHasUnsavedChanges(true);
+    syncSupabase('academic_records', 'update', record, record.id);
   };
-
   const deleteAcademicRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف هذا السجل الدراسي؟')) {
       setAcademicRecords(prev => prev.filter(r => r.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('academic_records', 'delete', null, id);
     }
   };
-
   const addMaintenanceRequest = (record: MaintenanceRequest) => {
     setMaintenanceRequests(prev => [record, ...prev]);
-    setHasUnsavedChanges(true);
+    syncSupabase('maintenance_requests', 'insert', record);
   };
-
   const updateMaintenanceRequest = (record: MaintenanceRequest) => {
     setMaintenanceRequests(prev => prev.map(r => r.id === record.id ? record : r));
-    setHasUnsavedChanges(true);
+    syncSupabase('maintenance_requests', 'update', record, record.id);
   };
-
   const deleteMaintenanceRequest = (id: string) => {
     if (window.confirm('تأكيد حذف طلب الصيانة؟')) {
       setMaintenanceRequests(prev => prev.filter(r => r.id !== id));
-      setHasUnsavedChanges(true);
+      syncSupabase('maintenance_requests', 'delete', null, id);
     }
   };
-
   const resetData = () => {
     if (window.confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟ سيتم فقدان التغييرة الحالية.')) {
-      setStudents(MOCK_STUDENTS);
-      setUsers(DEFAULT_USERS_LIST);
-      setBehaviorRecords(MOCK_BEHAVIOR);
-      setHealthRecords(MOCK_HEALTH);
-      setAttendanceRecords(MOCK_ATTENDANCE);
-      setExitRecords([]);
-      setActivityRecords(MOCK_ACTIVITIES);
-      setAcademicRecords(MOCK_ACADEMICS);
-      setMaintenanceRequests(MOCK_MAINTENANCE);
-      setSchoolSettings(DEFAULT_SETTINGS);
-      setWeeklyMenus(DEFAULT_MENUS);
-
-      // Clear storage
-      Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
-      setHasUnsavedChanges(false);
-      window.location.reload(); // Reload to ensure clean state
+      window.location.reload();
     }
   };
 
