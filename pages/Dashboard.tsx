@@ -225,7 +225,7 @@ const Dashboard: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800">
           {isParent ? 'متابعة أبنائي - لوحة القيادة الشاملة' : 'لوحة القيادة العامة'}
         </h2>
-        {!isParent && (
+        {(currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPERVISOR) && (
           <button
             onClick={() => setShowImportModal(true)}
             className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-md transition-all hover:scale-105 font-bold"
