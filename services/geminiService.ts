@@ -268,15 +268,27 @@ export const analyzeUploadedDocument = async (
         "data": [
           {
             "studentName": "Student Full Name",
+            "academicId": "Student ID (رقم التلميذ / رمز مسار)",
             "semester": "S1" or "S2",
             "generalAverage": Number (0-20),
             "rank": Number (optional),
             "subjects": [
-              { "subjectName": "Subject Name", "grade": Number, "coefficient": Number (default 1) }
+              { "subjectName": "Language Name (Arabic/French/English)", "grade": Number, "coefficient": Number },
+              { "subjectName": "Science Subject (Math/Physics/Life Science)", "grade": Number, "coefficient": Number },
+              { "subjectName": "Social Studies/Islamic Ed/PE", "grade": Number, "coefficient": Number }
             ]
           }
         ]
       }
+    `;
+    // Hints for specific columns seen in user data
+    contextInstructions += `
+    Look for these specific columns:
+    - رقم التلميذ / رمز مسار (Academic ID)
+    - اللغة العربية, اللغة الفرنسية, اللغة الإنجليزية
+    - الاجتماعيات, التربية الإسلامية, التربية البدنية
+    - الرياضيات, علوم الحياة والأرض, الفيزياء والكيمياء
+    - المعلوميات, التكنولوجيا
     `;
   }
 
