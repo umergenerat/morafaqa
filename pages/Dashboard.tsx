@@ -47,7 +47,9 @@ const Dashboard: React.FC = () => {
     maintenanceRequests,
     academicRecords,
     attendanceRecords,
-    currentUser
+    currentUser,
+    selectedSchoolYear,
+    setSelectedSchoolYear
   } = useData();
   const [showImportModal, setShowImportModal] = useState(false);
   const [alertFilter, setAlertFilter] = useState<'all' | 'health' | 'behavior'>('all');
@@ -225,15 +227,33 @@ const Dashboard: React.FC = () => {
         <h2 className="text-2xl font-bold text-gray-800">
           {isParent ? 'متابعة أبنائي - لوحة القيادة الشاملة' : 'لوحة القيادة العامة'}
         </h2>
-        {(currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPERVISOR) && (
-          <button
-            onClick={() => setShowImportModal(true)}
-            className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-md transition-all hover:scale-105 font-bold"
-          >
-            <Upload className="w-5 h-5" />
-            <span>استيراد ذكي للبيانات</span>
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {(currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPERVISOR) && (
+            <>
+              {/* School Year Selector */}
+              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-gray-200">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <select
+                  value={selectedSchoolYear}
+                  onChange={(e) => setSelectedSchoolYear(e.target.value)}
+                  className="bg-transparent text-sm font-bold text-gray-700 outline-none cursor-pointer"
+                >
+                  <option value="2025/2026">2025/2026</option>
+                  <option value="2024/2025">2024/2025</option>
+                  <option value="2023/2024">2023/2024</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="bg-emerald-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-emerald-700 shadow-md transition-all hover:scale-105 font-bold"
+              >
+                <Upload className="w-5 h-5" />
+                <span>استيراد ذكي للبيانات</span>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}

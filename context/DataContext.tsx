@@ -124,6 +124,10 @@ interface DataContextType {
 
   // Connection State
   isConnecting: boolean;
+
+  // Archiving
+  selectedSchoolYear: string;
+  setSelectedSchoolYear: (year: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -170,6 +174,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAcademicRecords(MOCK_ACADEMICS);
     setMaintenanceRequests(MOCK_MAINTENANCE);
   };
+
+  // School Year State
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>(DEFAULT_SETTINGS.schoolYear);
+
+  useEffect(() => {
+    if (schoolSettings.schoolYear) {
+      setSelectedSchoolYear(schoolSettings.schoolYear);
+    }
+  }, [schoolSettings.schoolYear]);
+
+  // --- Filtered Data Getters ---
+  const getFilteredData = <T extends { schoolYear?: string; date?: string }>(data: T[], year: string) => {
+    return data.filter(item => {
+      // 1. Explicit School Year (Highest Priority)
+      if (item.schoolYear) {
+        return item.schoolYear === year;
+      }
+      // 2. Fallback: Deduce from Date (if available)
+      if (item.date) {
+        // Simple logic: If month is >= 9 (Sep), it's the start of year X e.g., 2025 -> 2025/2026
+        // If month is < 9, it's the end of year X-1 e.g., 2026 -> 2025/2026
+        const d = new Date(item.date);
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1; // 1-12
+
+        // Format: "YYYY/YYYY+1"
+        const derivedYear = m >= 9 ? `${y}/${y + 1}` : `${y - 1}/${y}`;
+        return derivedYear === year;
+      }
+      // 3. Fallback: Show all untagged data (optional: or hide it)
+      // For now, let's include untagged data in CURRENT year only to avoid "hiding" legacy data
+      return year === schoolSettings.schoolYear;
+    });
+  };
+
+  const filteredStudents = React.useMemo(() =>
+    students.filter(s => s.schoolYear ? s.schoolYear === selectedSchoolYear : true), // Show legacy students in all years or just current? Let's show untagged in all for safety, or current.
+    [students, selectedSchoolYear]);
+
+  const filteredBehavior = React.useMemo(() => getFilteredData(behaviorRecords, selectedSchoolYear), [behaviorRecords, selectedSchoolYear]);
+  const filteredHealth = React.useMemo(() => getFilteredData(healthRecords, selectedSchoolYear), [healthRecords, selectedSchoolYear]);
+  const filteredAttendance = React.useMemo(() => getFilteredData(attendanceRecords, selectedSchoolYear), [attendanceRecords, selectedSchoolYear]);
+  const filteredExits = React.useMemo(() => getFilteredData(exitRecords, selectedSchoolYear), [exitRecords, selectedSchoolYear]);
+  const filteredActivities = React.useMemo(() => getFilteredData(activityRecords, selectedSchoolYear), [activityRecords, selectedSchoolYear]);
+  const filteredAcademic = React.useMemo(() => academicRecords.filter(r => r.schoolYear === selectedSchoolYear), [academicRecords, selectedSchoolYear]);
+  const filteredMaintenance = React.useMemo(() => getFilteredData(maintenanceRequests, selectedSchoolYear), [maintenanceRequests, selectedSchoolYear]);
 
   // --- Initial Data Fetch & Connection Simulation ---
   useEffect(() => {
@@ -290,11 +340,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const saveAllChanges = () => { setHasUnsavedChanges(false); };
   const discardAllChanges = () => { window.location.reload(); };
 
-  // --- Data Operations ---
+  // --- Data Operations (Modified to inject School Year) ---
   const addStudent = (student: Student) => {
-    setStudents(prev => [...prev, student]);
-    syncSupabase('students', 'insert', student);
+    const s = { ...student, schoolYear: selectedSchoolYear };
+    setStudents(prev => [...prev, s]);
+    syncSupabase('students', 'insert', s);
   };
+  // Other updates generally don't change school year, except maybe academic updates?
   const updateStudent = (updated: Student) => {
     setStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
     syncSupabase('students', 'update', updated, updated.id);
@@ -319,8 +371,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const addHealthRecord = (record: HealthRecord) => {
-    setHealthRecords(prev => [record, ...prev]);
-    syncSupabase('health_records', 'insert', record);
+    const r = { ...record, schoolYear: selectedSchoolYear };
+    setHealthRecords(prev => [r, ...prev]);
+    syncSupabase('health_records', 'insert', r);
   };
   const updateHealthRecord = (record: HealthRecord) => {
     setHealthRecords(prev => prev.map(h => h.id === record.id ? record : h));
@@ -333,8 +386,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const addBehaviorRecord = (record: BehaviorRecord) => {
-    setBehaviorRecords(prev => [record, ...prev]);
-    syncSupabase('behavior_records', 'insert', record);
+    const r = { ...record, schoolYear: selectedSchoolYear };
+    setBehaviorRecords(prev => [r, ...prev]);
+    syncSupabase('behavior_records', 'insert', r);
   };
   const updateBehaviorRecord = (record: BehaviorRecord) => {
     setBehaviorRecords(prev => prev.map(b => b.id === record.id ? record : b));
@@ -356,14 +410,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAttendanceRecords(prev => prev.map(a => a.id === existing.id ? newRecord : a));
       syncSupabase('attendance_records', 'update', newRecord, existing.id);
     } else {
-      newRecord = { id: crypto.randomUUID(), studentId, date: today, status, type: 'study' };
+      newRecord = { id: crypto.randomUUID(), studentId, date: today, status, type: 'study', schoolYear: selectedSchoolYear };
       setAttendanceRecords(prev => [...prev, newRecord]);
       syncSupabase('attendance_records', 'insert', newRecord);
     }
   };
   const addExitRecord = (record: ExitRecord) => {
-    setExitRecords(prev => [record, ...prev]);
-    syncSupabase('exit_records', 'insert', record);
+    const r = { ...record, schoolYear: selectedSchoolYear };
+    setExitRecords(prev => [r, ...prev]);
+    syncSupabase('exit_records', 'insert', r);
   };
   const deleteExitRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف سجل الخروج هذا؟')) {
@@ -372,8 +427,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const addActivity = (activity: ActivityRecord) => {
-    setActivityRecords(prev => [activity, ...prev]);
-    syncSupabase('activity_records', 'insert', activity);
+    const a = { ...activity, schoolYear: selectedSchoolYear };
+    setActivityRecords(prev => [a, ...prev]);
+    syncSupabase('activity_records', 'insert', a);
   };
   const updateActivity = (updated: ActivityRecord) => {
     setActivityRecords(prev => prev.map(a => a.id === updated.id ? updated : a));
@@ -390,8 +446,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     syncSupabase('settings', 'update', { weeklyMenus: menus }, 'current');
   };
   const addAcademicRecord = (record: AcademicRecord) => {
-    setAcademicRecords(prev => [record, ...prev]);
-    syncSupabase('academic_records', 'insert', record);
+    const r = { ...record, schoolYear: selectedSchoolYear }; // Academic Record usually has its own schoolYear, but default to context
+    setAcademicRecords(prev => [r, ...prev]);
+    syncSupabase('academic_records', 'insert', r);
   };
   const updateAcademicRecord = (record: AcademicRecord) => {
     setAcademicRecords(prev => prev.map(r => r.id === record.id ? record : r));
@@ -404,8 +461,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const addMaintenanceRequest = (record: MaintenanceRequest) => {
-    setMaintenanceRequests(prev => [record, ...prev]);
-    syncSupabase('maintenance_requests', 'insert', record);
+    const r = { ...record, schoolYear: selectedSchoolYear };
+    setMaintenanceRequests(prev => [r, ...prev]);
+    syncSupabase('maintenance_requests', 'insert', r);
   };
   const updateMaintenanceRequest = (record: MaintenanceRequest) => {
     setMaintenanceRequests(prev => prev.map(r => r.id === record.id ? record : r));
@@ -425,9 +483,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <DataContext.Provider value={{
-      students, users, behaviorRecords, healthRecords, attendanceRecords, exitRecords, activityRecords, weeklyMenus, academicRecords, maintenanceRequests,
+      students: filteredStudents,
+      users,
+      behaviorRecords: filteredBehavior,
+      healthRecords: filteredHealth,
+      attendanceRecords: filteredAttendance,
+      exitRecords: filteredExits,
+      activityRecords: filteredActivities,
+      weeklyMenus,
+      academicRecords: filteredAcademic,
+      maintenanceRequests: filteredMaintenance,
+
       schoolSettings, updateSchoolSettings,
       currentUser, isAuthenticated, login, logout, setCurrentUser,
+
       addStudent, updateStudent, deleteStudent,
       addUser, updateUser, deleteUser,
       addHealthRecord, updateHealthRecord, deleteHealthRecord,
@@ -437,8 +506,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,
       addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest,
+
       hasUnsavedChanges, saveAllChanges, discardAllChanges, resetData,
-      isConnecting
+      isConnecting,
+
+      // New Exports
+      selectedSchoolYear,
+      setSelectedSchoolYear
     }}>
       {children}
     </DataContext.Provider>

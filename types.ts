@@ -44,6 +44,7 @@ export interface Student {
   guardianAddress: string;
   guardianId?: string; // Parent's National ID (CNIE) for auto-linking
   photoUrl: string;
+  schoolYear: string; // Added for archiving
 }
 
 export interface AttendanceRecord {
@@ -52,6 +53,7 @@ export interface AttendanceRecord {
   date: string;
   status: 'present' | 'absent' | 'late';
   type: 'study' | 'sleep' | 'class';
+  schoolYear?: string;
 }
 
 export type ExitType = 'short' | 'long' | 'authorized'; // قصيرة، طويلة، إذن خاص
@@ -63,7 +65,9 @@ export interface ExitRecord {
   startDate: string;
   returnDate: string; // Expected return
   notes?: string;
+
   isApproved: boolean;
+  schoolYear?: string;
 }
 
 export interface HealthRecord {
@@ -74,6 +78,7 @@ export interface HealthRecord {
   notes: string;
   date: string;
   severity: 'low' | 'medium' | 'high';
+  schoolYear?: string;
 }
 
 export interface BehaviorRecord {
@@ -83,7 +88,9 @@ export interface BehaviorRecord {
   category: 'discipline' | 'hygiene' | 'interaction';
   description: string;
   date: string;
+
   reporter: string;
+  schoolYear?: string;
 }
 
 export interface GeminReportResponse {
@@ -134,7 +141,9 @@ export interface ActivityRecord {
   status: 'upcoming' | 'completed' | 'cancelled';
   participantsCount?: number;
   participantIds?: string[]; // List of student IDs
+
   images?: string[]; // Added for documentation
+  schoolYear?: string;
 }
 
 export interface SubjectGrade {
@@ -174,5 +183,7 @@ export interface MaintenanceRequest {
   originalValues?: Partial<MaintenanceRequest>;
   modifiedBy?: string;
   modificationDate?: string;
+
   modificationReason?: string;
+  schoolYear?: string;
 }
