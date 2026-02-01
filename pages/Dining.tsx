@@ -14,6 +14,7 @@ const Dining: React.FC = () => {
   // Editing State
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [tempEditData, setTempEditData] = useState<Meal | null>(null);
+  const [editReason, setEditReason] = useState('');
 
   // Notification State
   const [showNotifyModal, setShowNotifyModal] = useState(false);
@@ -34,10 +35,64 @@ const Dining: React.FC = () => {
   const handleEditClick = (meal: Meal) => {
     setEditingMeal(meal);
     setTempEditData({ ...meal });
+    setEditReason('');
   };
 
   const handleSaveEdit = () => {
     if (!tempEditData || !editingMeal) return;
+
+    // Check if user is NOT admin (Manager) => Send Notification
+    if (!Permissions.canManageUsers(currentUser)) {
+      const changes: string[] = [];
+
+      const checkChange = (field: keyof Meal, label: string) => {
+        if (editingMeal[field] !== tempEditData[field]) {
+          changes.push(`- ${label}: ${editingMeal[field] || '---'} ⬅️ ${tempEditData[field] || '---'}`);
+        }
+      };
+
+      if (isRamadan) {
+        checkChange('ftour', t('ftour'));
+        checkChange('dinner', t('dinner'));
+        checkChange('suhoor', t('suhoor'));
+      } else {
+        checkChange('breakfast', t('breakfast'));
+        checkChange('lunch', t('lunch'));
+        checkChange('dinner', t('dinner'));
+      }
+
+      if (changes.length > 0) {
+        const admin = users.find(u => u.role === UserRole.ADMIN);
+
+        if (admin && admin.phone) {
+          const message = language === 'ar'
+            ? `*⚠️ تنبيه: تعديل في قائمة الطعام*\n\n` +
+            `👤 *قام بالتعديل:* ${currentUser?.name}\n` +
+            `📅 *اليوم:* ${tempEditData.day}\n\n` +
+            `📋 *التغييرات:*\n${changes.join('\n')}\n\n` +
+            `📝 *السبب:* ${editReason || 'لا يوجد'}\n` +
+            `⏰ *التوقيت:* ${new Date().toLocaleString('ar-MA')}\n\n` +
+            `🔙 *للتراجع:* يرجى إعادة القيم السابقة يدوياً.`
+            : `*⚠️ Alerte: Modification du Menu*\n\n` +
+            `👤 *Modifié par:* ${currentUser?.name}\n` +
+            `📅 *Jour:* ${tempEditData.day}\n\n` +
+            `📋 *Changements:*\n${changes.join('\n')}\n\n` +
+            `📝 *Raison:* ${editReason || 'Aucune'}\n` +
+            `⏰ *Date:* ${new Date().toLocaleString('fr-FR')}\n\n` +
+            `🔙 *Pour annuler:* Veuillez restaurer les anciennes valeurs manuellement.`;
+
+          const phone = admin.phone.replace(/\D/g, '');
+          const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+          // Open notification in new tab
+          window.open(whatsappUrl, '_blank');
+        } else {
+          alert(language === 'ar'
+            ? 'تم حفظ التعديلات، لكن تعذر إرسال الإشعار للمدير (رقم الهاتف غير متوفر).'
+            : 'Modifications enregistrées, mais impossible de notifier le directeur (numéro manquant).');
+        }
+      }
+    }
 
     // Determine which array we are editing to update it in the global state
     const newMenus = { ...weeklyMenus };
@@ -509,6 +564,26 @@ const Dining: React.FC = () => {
                   </div>
                 </div>
               </form>
+
+              {/* Reason for Edit (Visible to Non-Admins) */}
+              {!Permissions.canManageUsers(currentUser) && (
+                <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                  <label className="block text-sm font-bold text-orange-800 mb-2">
+                    {language === 'ar' ? 'سبب التعديل (إلزامي لإرسال الإشعار)' : 'Raison de la modification (Requis)'}
+                  </label>
+                  <textarea
+                    value={editReason}
+                    onChange={(e) => setEditReason(e.target.value)}
+                    placeholder={language === 'ar' ? 'يرجى ذكر سبب التعديل...' : 'Veuillez indiquer la raison...'}
+                    className="w-full border border-orange-200 rounded-xl p-3 h-20 bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none resize-none text-sm"
+                  />
+                  <p className="text-xs text-orange-600 mt-2">
+                    {language === 'ar'
+                      ? '⚠️ سيتم إرسال رسالة تلقائية للمدير بالتعديلات.'
+                      : '⚠️ Un message sera envoyé automatiquement au directeur.'}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="p-6 border-t flex gap-3 flex-shrink-0 bg-gray-50">
