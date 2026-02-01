@@ -41,42 +41,69 @@ const Dining: React.FC = () => {
   const handleSaveEdit = () => {
     if (!tempEditData || !editingMeal) return;
 
-    // Check if user is NOT admin (Manager) => Send Notification
-    if (!Permissions.canManageUsers(currentUser)) {
-      const changes: string[] = [];
+    // Check for changes
+    const originalSnapshot: any = editingMeal.originalValues || {};
+    let hasChanges = false;
+    let updatedMeal = { ...tempEditData } as Meal;
 
-      const checkChange = (field: keyof Meal, label: string) => {
-        if (editingMeal[field] !== tempEditData[field]) {
-          changes.push(`- ${label}: ${editingMeal[field] || '---'} ⬅️ ${tempEditData[field] || '---'}`);
+    const fields = isRamadan
+      ? ['ftour', 'dinner', 'suhoor'] as const
+      : ['breakfast', 'lunch', 'dinner'] as const;
+
+    fields.forEach(field => {
+      // If value changed from current
+      if (tempEditData[field] !== editingMeal[field]) {
+        hasChanges = true;
+        // If we don't have an original value stored yet, store the current one as original
+        if (!originalSnapshot[field]) {
+          originalSnapshot[field] = editingMeal[field];
         }
-      };
-
-      if (isRamadan) {
-        checkChange('ftour', t('ftour'));
-        checkChange('dinner', t('dinner'));
-        checkChange('suhoor', t('suhoor'));
-      } else {
-        checkChange('breakfast', t('breakfast'));
-        checkChange('lunch', t('lunch'));
-        checkChange('dinner', t('dinner'));
+        // If we reverted to original, remove from snapshot
+        if (originalSnapshot[field] === tempEditData[field]) {
+          delete originalSnapshot[field];
+        }
       }
+    });
 
-      if (changes.length > 0) {
+    updatedMeal = {
+      ...updatedMeal,
+      originalValues: Object.keys(originalSnapshot).length > 0 ? originalSnapshot : undefined,
+      modifiedBy: hasChanges ? currentUser?.name : editingMeal.modifiedBy,
+      modificationDate: hasChanges ? new Date().toISOString() : editingMeal.modificationDate,
+      modificationReason: hasChanges ? editReason : editingMeal.modificationReason
+    };
+
+    // Notification Logic (Only for non-admins)
+    if (hasChanges && !Permissions.canManageUsers(currentUser)) {
+      const changeLog: string[] = [];
+
+      fields.forEach(field => {
+        if (updatedMeal[field] !== editingMeal[field]) {
+          const label = field === 'ftour' ? t('ftour') :
+            field === 'suhoor' ? t('suhoor') :
+              field === 'breakfast' ? t('breakfast') :
+                field === 'lunch' ? t('lunch') : t('dinner');
+
+          changeLog.push(`- ${label}: ${updatedMeal[field] || '---'} ⬅️ ${editingMeal[field] || '---'}`);
+        }
+      });
+
+      if (changeLog.length > 0) {
         const admin = users.find(u => u.role === UserRole.ADMIN);
 
         if (admin && admin.phone) {
           const message = language === 'ar'
             ? `*⚠️ تنبيه: تعديل في قائمة الطعام*\n\n` +
             `👤 *قام بالتعديل:* ${currentUser?.name}\n` +
-            `📅 *اليوم:* ${tempEditData.day}\n\n` +
-            `📋 *التغييرات:*\n${changes.join('\n')}\n\n` +
+            `📅 *اليوم:* ${updatedMeal.day}\n\n` +
+            `📋 *التغييرات:*\n${changeLog.join('\n')}\n\n` +
             `📝 *السبب:* ${editReason || 'لا يوجد'}\n` +
             `⏰ *التوقيت:* ${new Date().toLocaleString('ar-MA')}\n\n` +
             `🔙 *للتراجع:* يرجى إعادة القيم السابقة يدوياً.`
             : `*⚠️ Alerte: Modification du Menu*\n\n` +
             `👤 *Modifié par:* ${currentUser?.name}\n` +
-            `📅 *Jour:* ${tempEditData.day}\n\n` +
-            `📋 *Changements:*\n${changes.join('\n')}\n\n` +
+            `📅 *Jour:* ${updatedMeal.day}\n\n` +
+            `📋 *Changements:*\n${changeLog.join('\n')}\n\n` +
             `📝 *Raison:* ${editReason || 'Aucune'}\n` +
             `⏰ *Date:* ${new Date().toLocaleString('fr-FR')}\n\n` +
             `🔙 *Pour annuler:* Veuillez restaurer les anciennes valeurs manuellement.`;
@@ -84,12 +111,7 @@ const Dining: React.FC = () => {
           const phone = admin.phone.replace(/\D/g, '');
           const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 
-          // Open notification in new tab
           window.open(whatsappUrl, '_blank');
-        } else {
-          alert(language === 'ar'
-            ? 'تم حفظ التعديلات، لكن تعذر إرسال الإشعار للمدير (رقم الهاتف غير متوفر).'
-            : 'Modifications enregistrées, mais impossible de notifier le directeur (numéro manquant).');
         }
       }
     }
@@ -107,7 +129,8 @@ const Dining: React.FC = () => {
       else { listKey = 'normalFr'; targetList = [...newMenus.normalFr]; }
     }
 
-    const updatedList = targetList.map(m => m.id === tempEditData.id ? tempEditData : m);
+    // Use updatedMeal instead of tempEditData
+    const updatedList = targetList.map(m => m.id === updatedMeal.id ? updatedMeal : m);
     newMenus[listKey] = updatedList;
 
     updateWeeklyMenus(newMenus);
@@ -294,9 +317,22 @@ const Dining: React.FC = () => {
                     {isRamadan ? <Moon className="w-4 h-4" /> : <Coffee className="w-4 h-4" />}
                     {isRamadan ? t('ftour') : t('breakfast')}
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {isRamadan ? meal.ftour : meal.breakfast}
-                  </p>
+                  <div className="relative group">
+                    <p className={`text-sm leading-relaxed ${meal.originalValues?.[isRamadan ? 'ftour' : 'breakfast'] ? 'text-orange-600 font-bold' : 'text-gray-700'}`}>
+                      {isRamadan ? meal.ftour : meal.breakfast}
+                    </p>
+                    {meal.originalValues?.[isRamadan ? 'ftour' : 'breakfast'] && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-max max-w-xs p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20">
+                        <div className="font-bold border-b border-gray-600 mb-1 pb-1">{language === 'ar' ? 'الأصل:' : 'Original:'}</div>
+                        {meal.originalValues[isRamadan ? 'ftour' : 'breakfast']}
+                        <div className="mt-1 text-gray-400 italic font-mono text-[10px]">
+                          {meal.modifiedBy} - {meal.modificationReason}
+                        </div>
+                        {/* Triangle arrow */}
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Meal 2 */}
@@ -305,9 +341,21 @@ const Dining: React.FC = () => {
                     <Utensils className="w-4 h-4" />
                     {isRamadan ? t('dinner') : t('lunch')}
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {isRamadan ? meal.dinner : meal.lunch}
-                  </p>
+                  <div className="relative group">
+                    <p className={`text-sm leading-relaxed ${meal.originalValues?.[isRamadan ? 'dinner' : 'lunch'] ? 'text-orange-600 font-bold' : 'text-gray-700'}`}>
+                      {isRamadan ? meal.dinner : meal.lunch}
+                    </p>
+                    {meal.originalValues?.[isRamadan ? 'dinner' : 'lunch'] && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-max max-w-xs p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20">
+                        <div className="font-bold border-b border-gray-600 mb-1 pb-1">{language === 'ar' ? 'الأصل:' : 'Original:'}</div>
+                        {meal.originalValues[isRamadan ? 'dinner' : 'lunch']}
+                        <div className="mt-1 text-gray-400 italic font-mono text-[10px]">
+                          {meal.modifiedBy} - {meal.modificationReason}
+                        </div>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Meal 3 */}
@@ -316,9 +364,21 @@ const Dining: React.FC = () => {
                     {isRamadan ? <Sunrise className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                     {isRamadan ? t('suhoor') : t('dinner')}
                   </div>
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {isRamadan ? meal.suhoor : meal.dinner}
-                  </p>
+                  <div className="relative group">
+                    <p className={`text-sm leading-relaxed ${meal.originalValues?.[isRamadan ? 'suhoor' : 'dinner'] ? 'text-orange-600 font-bold' : 'text-gray-700'}`}>
+                      {isRamadan ? meal.suhoor : meal.dinner}
+                    </p>
+                    {meal.originalValues?.[isRamadan ? 'suhoor' : 'dinner'] && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-max max-w-xs p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20">
+                        <div className="font-bold border-b border-gray-600 mb-1 pb-1">{language === 'ar' ? 'الأصل:' : 'Original:'}</div>
+                        {meal.originalValues[isRamadan ? 'suhoor' : 'dinner']}
+                        <div className="mt-1 text-gray-400 italic font-mono text-[10px]">
+                          {meal.modifiedBy} - {meal.modificationReason}
+                        </div>
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

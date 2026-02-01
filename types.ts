@@ -100,6 +100,17 @@ export interface Meal {
   ftour?: string;     // Ramadan
   suhoor?: string;    // Ramadan
   calories?: number;
+  // Modification tracking
+  originalValues?: {
+    breakfast?: string;
+    lunch?: string;
+    dinner?: string;
+    ftour?: string;
+    suhoor?: string;
+  };
+  modifiedBy?: string;
+  modificationDate?: string;
+  modificationReason?: string;
 }
 
 export interface WeeklyMenus {
