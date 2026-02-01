@@ -284,11 +284,17 @@ export const analyzeUploadedDocument = async (
     // Hints for specific columns seen in user data
     contextInstructions += `
     Look for these specific columns:
-    - رقم التلميذ / رمز مسار (Academic ID)
+    - رقم التلميذ / رمز مسار (Academic ID) -> map to "academicId"
+    - اسم التلاميذ / الإسم والنسب (Student Name) -> map to "studentName"
     - اللغة العربية, اللغة الفرنسية, اللغة الإنجليزية
     - الاجتماعيات, التربية الإسلامية, التربية البدنية
     - الرياضيات, علوم الحياة والأرض, الفيزياء والكيمياء
     - المعلوميات, التكنولوجيا
+    
+    CRITICAL FOR EXCEL/SPREADSHEET:
+    - The input JSON is a raw dump of the sheet.
+    - Keys will be in ARABIC. You must map them to the English keys in the specific "subjects" structure.
+    - "academicId" MUST be extracted from "رقم التلميذ" or "رمز مسار".
     `;
   }
 
