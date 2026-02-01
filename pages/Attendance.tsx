@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Save, Upload, Check, Clock, X, LogOut, Calendar, Plus, MapPin, Search, Users, CheckSquare, Square, Filter, FileDown, ArrowLeftRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Save, Upload, Check, Clock, X, LogOut, Calendar, Plus, MapPin, Search, Users, CheckSquare, Square, Filter, FileDown, ArrowLeftRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Home } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -56,6 +56,10 @@ const Attendance: React.FC = () => {
   const [exitFilterType, setExitFilterType] = useState<ExitType | 'ALL'>('ALL');
   const [exitStatusFilter, setExitStatusFilter] = useState<'ALL' | 'ACTIVE' | 'EXPIRED'>('ALL');
 
+  // Room Filter States
+  const [roomFilterDaily, setRoomFilterDaily] = useState<string>('ALL');
+  const [roomFilterModal, setRoomFilterModal] = useState<string>('ALL');
+
   const today = new Date().toISOString().split('T')[0];
   const isParent = currentUser?.role === UserRole.PARENT;
 
@@ -65,11 +69,22 @@ const Attendance: React.FC = () => {
     return record?.status; // undefined (not set), present, absent, late
   };
 
+  // استخراج الغرف الفريدة
+  const uniqueRooms = useMemo(() => {
+    const rooms = [...new Set(students.map(s => s.roomNumber))];
+    return rooms.sort((a, b) => a.localeCompare(b, 'ar', { numeric: true }));
+  }, [students]);
+
   // Filter students for display (Main View)
   const displayedStudents = useMemo(() => {
-    const list = isParent
+    let list = isParent
       ? students.filter(s => currentUser?.linkedStudentIds?.includes(s.id))
       : students;
+
+    // تصفية حسب الغرفة
+    if (roomFilterDaily !== 'ALL') {
+      list = list.filter(s => s.roomNumber === roomFilterDaily);
+    }
 
     if (dailySort) {
       return [...list].sort((a, b) => {
@@ -93,7 +108,7 @@ const Attendance: React.FC = () => {
       });
     }
     return list;
-  }, [students, isParent, currentUser, dailySort, attendanceRecords, today, getStatus]);
+  }, [students, isParent, currentUser, dailySort, attendanceRecords, today, getStatus, roomFilterDaily]);
 
   // ----------------------------------------------------------------------
   // Enhanced Exit Logic
@@ -170,10 +185,11 @@ const Attendance: React.FC = () => {
   // Filter students for Modal Selection
   const filteredStudentsForSelection = useMemo(() => {
     return students.filter(s =>
-      s.fullName.toLowerCase().includes(studentFilter.toLowerCase()) ||
-      s.roomNumber.includes(studentFilter)
+      (s.fullName.toLowerCase().includes(studentFilter.toLowerCase()) ||
+        s.roomNumber.includes(studentFilter)) &&
+      (roomFilterModal === 'ALL' || s.roomNumber === roomFilterModal)
     );
-  }, [students, studentFilter]);
+  }, [students, studentFilter, roomFilterModal]);
 
   const saveAttendance = () => {
     alert(t('save') + '!');
@@ -235,6 +251,7 @@ const Attendance: React.FC = () => {
   const openExitModal = () => {
     setSelectedStudentIds([]);
     setStudentFilter('');
+    setRoomFilterModal('ALL');
     setShowExitModal(true);
   }
 
@@ -349,11 +366,19 @@ const Attendance: React.FC = () => {
                     <option>فترة المساء (مراجعة)</option>
                     <option>الليل (نوم)</option>
                   </select>
-                  <select className="border border-gray-300 rounded-lg px-4 py-2 bg-white text-gray-800 font-medium focus:ring-2 focus:ring-emerald-500 outline-none w-full md:w-auto">
-                    <option>الكل</option>
-                    <option>الجناح أ</option>
-                    <option>الجناح ب</option>
-                  </select>
+                  <div className="relative w-full md:w-auto">
+                    <Home className="absolute right-3 top-2.5 text-gray-400 w-4 h-4 pointer-events-none" />
+                    <select
+                      value={roomFilterDaily}
+                      onChange={(e) => setRoomFilterDaily(e.target.value)}
+                      className="appearance-none border border-gray-300 rounded-lg pl-4 pr-10 py-2 bg-white text-gray-800 font-medium focus:ring-2 focus:ring-emerald-500 outline-none w-full md:w-auto"
+                    >
+                      <option value="ALL">كل الغرف</option>
+                      {uniqueRooms.map(room => (
+                        <option key={room} value={room}>غرفة {room}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             )}
@@ -390,8 +415,8 @@ const Attendance: React.FC = () => {
                               {/* Parents View Read Only */}
                               {isParent ? (
                                 <span className={`px-4 py-2 rounded-lg font-bold text-sm ${currentStatus === 'present' ? 'bg-emerald-100 text-emerald-700' :
-                                    currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700' :
-                                      currentStatus === 'absent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
+                                  currentStatus === 'late' ? 'bg-yellow-100 text-yellow-700' :
+                                    currentStatus === 'absent' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'
                                   }`}>
                                   {currentStatus === 'present' ? 'حاضر' :
                                     currentStatus === 'late' ? 'متأخر' :
@@ -680,6 +705,19 @@ const Attendance: React.FC = () => {
                         />
                         <Search className="absolute left-2.5 top-2.5 text-gray-400 w-4 h-4" />
                       </div>
+                      <div className="relative">
+                        <Home className="absolute left-2 top-2 text-gray-400 w-4 h-4 pointer-events-none" />
+                        <select
+                          value={roomFilterModal}
+                          onChange={(e) => setRoomFilterModal(e.target.value)}
+                          className="appearance-none bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-emerald-500 focus:border-emerald-500 block w-full sm:w-36 pl-7 pr-3 py-2"
+                        >
+                          <option value="ALL">كل الغرف</option>
+                          {uniqueRooms.map(room => (
+                            <option key={room} value={room}>غرفة {room}</option>
+                          ))}
+                        </select>
+                      </div>
                       <button
                         onClick={toggleSelectAll}
                         className="px-3 py-1.5 text-xs font-bold bg-white border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 whitespace-nowrap"
@@ -699,8 +737,8 @@ const Attendance: React.FC = () => {
                           key={s.id}
                           onClick={() => toggleStudentSelection(s.id)}
                           className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all border ${selectedStudentIds.includes(s.id)
-                              ? 'bg-emerald-50 border-emerald-500 shadow-sm'
-                              : 'border-transparent hover:bg-gray-50'
+                            ? 'bg-emerald-50 border-emerald-500 shadow-sm'
+                            : 'border-transparent hover:bg-gray-50'
                             }`}
                         >
                           <div className="flex items-center gap-3">

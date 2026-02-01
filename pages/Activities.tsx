@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   BookOpen,
   Calendar,
@@ -19,7 +19,8 @@ import {
   Image as ImageIcon,
   Upload,
   Search,
-  Check
+  Check,
+  Filter
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -45,8 +46,9 @@ const Activities: React.FC = () => {
     participantIds: []
   });
 
-  // Student Search in Modal
+  // Student Search and Filter in Modal
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [gradeFilter, setGradeFilter] = useState<string>('ALL');
 
   const canEdit = Permissions.canManageBehavior(currentUser);
   const isParent = Permissions.isParent(currentUser);
@@ -89,6 +91,7 @@ const Activities: React.FC = () => {
       participantIds: []
     });
     setStudentSearchTerm('');
+    setGradeFilter('ALL');
     setShowModal(true);
   };
 
@@ -96,6 +99,7 @@ const Activities: React.FC = () => {
     setIsEditing(true);
     setNewActivity({ ...activity, images: activity.images || [], participantIds: activity.participantIds || [] });
     setStudentSearchTerm('');
+    setGradeFilter('ALL');
     setShowModal(true);
   };
 
@@ -164,9 +168,16 @@ const Activities: React.FC = () => {
     setShowModal(false);
   };
 
+  // استخراج المستويات الفريدة
+  const uniqueGrades = useMemo(() => {
+    const grades = [...new Set(students.map(s => s.grade))];
+    return grades.sort();
+  }, [students]);
+
   const filteredStudents = students.filter(s =>
-    s.fullName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
-    s.grade.toLowerCase().includes(studentSearchTerm.toLowerCase())
+    (s.fullName.toLowerCase().includes(studentSearchTerm.toLowerCase()) ||
+      s.grade.toLowerCase().includes(studentSearchTerm.toLowerCase())) &&
+    (gradeFilter === 'ALL' || s.grade === gradeFilter)
   );
 
   return (
@@ -499,15 +510,30 @@ const Activities: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="بحث عن تلميذ..."
-                      value={studentSearchTerm}
-                      onChange={(e) => setStudentSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
-                    />
+                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+                      <input
+                        type="text"
+                        placeholder="بحث عن تلميذ..."
+                        value={studentSearchTerm}
+                        onChange={(e) => setStudentSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Filter className="absolute left-2.5 top-2.5 text-gray-400 w-4 h-4 pointer-events-none" />
+                      <select
+                        value={gradeFilter}
+                        onChange={(e) => setGradeFilter(e.target.value)}
+                        className="appearance-none bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:w-44 pl-8 pr-3 py-2"
+                      >
+                        <option value="ALL">كل المستويات</option>
+                        {uniqueGrades.map(grade => (
+                          <option key={grade} value={grade}>{grade}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
