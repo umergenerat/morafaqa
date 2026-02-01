@@ -170,4 +170,9 @@ export interface MaintenanceRequest {
   dateReported: string;
   reporterName: string;
   costEstimate?: number; // Optional cost tracking
+  // Modification tracking
+  originalValues?: Partial<MaintenanceRequest>;
+  modifiedBy?: string;
+  modificationDate?: string;
+  modificationReason?: string;
 }

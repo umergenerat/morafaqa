@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
-import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole, User, Student } from '../types';
+import { MaintenanceRequest, MaintenanceType, PriorityLevel, UserRole } from '../types';
 import * as Permissions from '../utils/permissions';
-import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Filter, Trash2, Edit2, ChevronDown, Calendar, Send, MessageCircle, Phone, Bell } from 'lucide-react';
+import { Wrench, Plus, CheckCircle, Clock, AlertTriangle, Hammer, X, Trash2, ChevronDown, Calendar, Send, MessageCircle, Phone, Bell, Edit2 } from 'lucide-react';
 
 const Maintenance: React.FC = () => {
     const { maintenanceRequests, addMaintenanceRequest, updateMaintenanceRequest, deleteMaintenanceRequest, currentUser, users } = useData();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const [showModal, setShowModal] = useState(false);
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'in_progress' | 'completed'>('all');
+
+    // Editing State
+    const [editingRequest, setEditingRequest] = useState<MaintenanceRequest | null>(null);
+    const [tempEditData, setTempEditData] = useState<MaintenanceRequest | null>(null);
+    const [editReason, setEditReason] = useState('');
 
     const [newRequest, setNewRequest] = useState<Partial<MaintenanceRequest>>({
         type: 'plumbing',
@@ -25,10 +30,9 @@ const Maintenance: React.FC = () => {
     const [notificationChannel, setNotificationChannel] = useState<'whatsapp' | 'sms'>('whatsapp');
     const [notificationNotes, setNotificationNotes] = useState('');
 
-    const canUpdateStatus = Permissions.canManageDining(currentUser); // Managers/Bursars/Admins
+    const canUpdateStatus = Permissions.canManageMaintenance(currentUser);
     const canDelete = Permissions.canManageMaintenance(currentUser);
-    const canEdit = Permissions.canViewAllStudents(currentUser) && !Permissions.isParent(currentUser);
-    const isParent = Permissions.isParent(currentUser);
+    // const canEdit = Permissions.canViewAllStudents(currentUser) && !Permissions.isParent(currentUser);
 
     const filteredRequests = maintenanceRequests.filter(req =>
         filterStatus === 'all' || req.status === filterStatus
@@ -47,7 +51,7 @@ const Maintenance: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleSave = () => {
+    const handleSaveNew = () => {
         if (!newRequest.title || !newRequest.location) return;
 
         const request: MaintenanceRequest = {
@@ -75,6 +79,122 @@ const Maintenance: React.FC = () => {
         setShowNotifyModal(true);
     };
 
+    const handleEditClick = (req: MaintenanceRequest) => {
+        setEditingRequest(req);
+        setTempEditData({ ...req });
+        setEditReason('');
+    };
+
+    const handleSaveEdit = () => {
+        if (!tempEditData || !editingRequest) return;
+
+        // Check for changes
+        const originalSnapshot: any = editingRequest.originalValues || {};
+        let hasChanges = false;
+        let updatedRequest = { ...tempEditData } as MaintenanceRequest;
+
+        const fields = ['title', 'location', 'description', 'status', 'priority'] as const;
+
+        fields.forEach(field => {
+            if (tempEditData[field] !== editingRequest[field]) {
+                hasChanges = true;
+                if (!originalSnapshot[field]) {
+                    originalSnapshot[field] = editingRequest[field];
+                }
+                if (originalSnapshot[field] === tempEditData[field]) {
+                    delete originalSnapshot[field];
+                }
+            }
+        });
+
+        updatedRequest = {
+            ...updatedRequest,
+            originalValues: Object.keys(originalSnapshot).length > 0 ? originalSnapshot : undefined,
+            modifiedBy: hasChanges ? currentUser?.name : editingRequest.modifiedBy,
+            modificationDate: hasChanges ? new Date().toISOString() : editingRequest.modificationDate,
+            modificationReason: hasChanges ? editReason : editingRequest.modificationReason
+        };
+
+        // Notification Logic (If not Admin)
+        if (hasChanges && !Permissions.canManageUsers(currentUser)) {
+            const changeLog: string[] = [];
+
+            fields.forEach(field => {
+                if (updatedRequest[field] !== editingRequest[field]) {
+                    const label = field === 'title' ? 'العنوان' :
+                        field === 'location' ? 'المكان' :
+                            field === 'description' ? 'الوصف' :
+                                field === 'status' ? 'الحالة' : 'الأولوية';
+
+                    const oldVal = field === 'status' ? t(editingRequest[field]) : editingRequest[field];
+                    const newVal = field === 'status' ? t(updatedRequest[field]) : updatedRequest[field];
+
+                    changeLog.push(`- ${label}: ${newVal} ⬅️ ${oldVal}`);
+                }
+            });
+
+            if (changeLog.length > 0) {
+                const admin = users.find(u => u.role === UserRole.ADMIN);
+                if (admin && admin.phone) {
+                    const message = language === 'ar'
+                        ? `*🔧 تحديث طلب صيانة*\n\n` +
+                        `👤 *قام بالتعديل:* ${currentUser?.name}\n` +
+                        `📌 *الطلب:* ${updatedRequest.title}\n` +
+                        `📍 *المكان:* ${updatedRequest.location}\n\n` +
+                        `📋 *التغييرات:*\n${changeLog.join('\n')}\n\n` +
+                        `📝 *السبب:* ${editReason || 'لا يوجد'}\n` +
+                        `⏰ *التوقيت:* ${new Date().toLocaleString('ar-MA')}`
+                        : `*🔧 Maintenance Update*\n\n` +
+                        `👤 *Modified by:* ${currentUser?.name}\n` +
+                        `📌 *Request:* ${updatedRequest.title}\n` +
+                        `📍 *Location:* ${updatedRequest.location}\n\n` +
+                        `📋 *Changes:*\n${changeLog.join('\n')}\n\n` +
+                        `📝 *Reason:* ${editReason || 'None'}\n` +
+                        `⏰ *Time:* ${new Date().toLocaleString('fr-FR')}`;
+
+                    const phone = admin.phone.replace(/\D/g, '');
+                    const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                }
+            }
+        }
+
+        updateMaintenanceRequest(updatedRequest);
+        setEditingRequest(null);
+        setTempEditData(null);
+    };
+
+    // Quick status change wrapper using standard save logic
+    const handleStatusChange = (req: MaintenanceRequest, newStatus: MaintenanceRequest['status']) => {
+        // We set up specific edit mode just for status, to leverage the same tracking logic
+        setEditingRequest(req);
+        setTempEditData({ ...req, status: newStatus });
+        // Auto-save immediately if admin, or if other user we might want to prompt for reason?
+        // For smoother UX, let's just do it directly if admin, or prompt if not.
+        // User asked for "Same principle", which implies prompting for reason.
+
+        if (!Permissions.canManageUsers(currentUser)) {
+            // If not admin, we need the reason prompt. So we open the modal with the new status pre-set.
+            setEditingRequest(req);
+            setTempEditData({ ...req, status: newStatus });
+            // No, wait, if I open the modal it's the full edit modal. 
+            // Let's force the modal open.
+            setEditReason('');
+            return;
+        } else {
+            // Admin can fast-update
+            const updated = { ...req, status: newStatus };
+            updateMaintenanceRequest(updated);
+        }
+    };
+
+    // Instead of quick status select for non-admins, they should use the edit button to Ensure tracking.
+    // So if !canManageUsers, we disable the quick select or make it open the modal.
+
+    const handleValuesChange = (field: keyof MaintenanceRequest, value: any) => {
+        setTempEditData(prev => ({ ...prev!, [field]: value }));
+    };
+
     const handleSendNotification = () => {
         if (!lastCreatedRequest) return;
 
@@ -86,14 +206,6 @@ const Maintenance: React.FC = () => {
 
         const priorityText = lastCreatedRequest.priority === 'high' ? '🔴 عاجل' :
             lastCreatedRequest.priority === 'medium' ? '🟠 متوسط' : '🟢 عادي';
-
-        const typeLabels: Record<MaintenanceType, string> = {
-            'plumbing': 'سباكة',
-            'electricity': 'كهرباء',
-            'cleaning': 'نظافة',
-            'equipment': 'معدات',
-            'other': 'أخرى'
-        };
 
         // Short reference from ID (last 4 chars)
         const refId = lastCreatedRequest.id.slice(-4).toUpperCase();
@@ -165,10 +277,6 @@ _منصة مرافقة_`;
         window.open(whatsappUrl, '_blank');
     };
 
-    const handleStatusChange = (request: MaintenanceRequest, newStatus: MaintenanceRequest['status']) => {
-        updateMaintenanceRequest({ ...request, status: newStatus });
-    };
-
     const getTypeIcon = (type: MaintenanceType) => {
         switch (type) {
             case 'plumbing': return <span className="text-blue-500 bg-blue-50 p-2 rounded-lg"><Wrench className="w-5 h-5" /></span>;
@@ -186,6 +294,17 @@ _منصة مرافقة_`;
             case 'low': return 'bg-green-100 text-green-700 border-green-200';
         }
     };
+
+    const renderTooltip = (originalValue: any, modifier: string | undefined, reason: string | undefined) => (
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block w-max max-w-xs p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20">
+            <div className="font-bold border-b border-gray-600 mb-1 pb-1">{language === 'ar' ? 'الأصل:' : 'Original:'}</div>
+            {originalValue}
+            <div className="mt-1 text-gray-400 italic font-mono text-[10px]">
+                {modifier} - {reason}
+            </div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -257,14 +376,34 @@ _منصة مرافقة_`;
                     </div>
                 ) : (
                     filteredRequests.map(req => (
-                        <div key={req.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all flex flex-col">
+                        <div key={req.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all flex flex-col group relative">
+                            {canUpdateStatus && (
+                                <button
+                                    onClick={() => handleEditClick(req)}
+                                    className="absolute top-2 left-2 bg-white/90 p-1.5 rounded-full text-gray-500 hover:text-blue-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                    title="تعديل"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                            )}
+
                             <div className="p-5 flex-1">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
                                         {getTypeIcon(req.type)}
                                         <div>
-                                            <h3 className="font-bold text-gray-800 line-clamp-1">{req.title}</h3>
-                                            <p className="text-xs text-gray-500">{req.location}</p>
+                                            <div className="relative group">
+                                                <h3 className={`font-bold line-clamp-1 ${req.originalValues?.title ? 'text-orange-600' : 'text-gray-800'}`}>
+                                                    {req.title}
+                                                </h3>
+                                                {req.originalValues?.title && renderTooltip(req.originalValues.title, req.modifiedBy, req.modificationReason)}
+                                            </div>
+                                            <div className="relative group">
+                                                <p className={`text-xs ${req.originalValues?.location ? 'text-orange-600 font-bold' : 'text-gray-500'}`}>
+                                                    {req.location}
+                                                </p>
+                                                {req.originalValues?.location && renderTooltip(req.originalValues.location, req.modifiedBy, req.modificationReason)}
+                                            </div>
                                         </div>
                                     </div>
                                     <span className={`text-[10px] px-2 py-0.5 rounded border font-bold ${getPriorityColor(req.priority)}`}>
@@ -272,9 +411,12 @@ _منصة مرافقة_`;
                                     </span>
                                 </div>
 
-                                <p className="text-gray-600 text-sm mb-4 leading-relaxed line-clamp-3 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                    {req.description}
-                                </p>
+                                <div className="relative group">
+                                    <p className={`text-sm mb-4 leading-relaxed line-clamp-3 bg-gray-50 p-3 rounded-lg border border-gray-100 ${req.originalValues?.description ? 'text-orange-700 border-orange-200' : 'text-gray-600'}`}>
+                                        {req.description}
+                                    </p>
+                                    {req.originalValues?.description && renderTooltip(req.originalValues.description, req.modifiedBy, req.modificationReason)}
+                                </div>
 
                                 <div className="flex justify-between items-center text-xs text-gray-400 mt-auto">
                                     <span>{req.dateReported}</span>
@@ -285,10 +427,22 @@ _منصة مرافقة_`;
                             {/* Footer Actions */}
                             <div className="bg-gray-50 p-3 border-t border-gray-100 flex justify-between items-center">
                                 {canUpdateStatus ? (
-                                    <div className="relative">
+                                    <div className="relative group">
                                         <select
                                             value={req.status}
-                                            onChange={(e) => handleStatusChange(req, e.target.value as any)}
+                                            // Ensure we check strictAdmin permissions for quick select, otherwise trigger modal
+                                            onChange={(e) => {
+                                                const newStatus = e.target.value as any;
+                                                if (Permissions.canManageUsers(currentUser)) {
+                                                    // Admin -> Quick Update
+                                                    handleStatusChange(req, newStatus);
+                                                } else {
+                                                    // Non-Admin -> Open Edit Modal to force reason
+                                                    setEditingRequest(req);
+                                                    setTempEditData({ ...req, status: newStatus });
+                                                    setEditReason('');
+                                                }
+                                            }}
                                             className={`appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border focus:outline-none focus:ring-2 cursor-pointer
                                          ${req.status === 'pending' ? 'bg-red-50 text-red-700 border-red-200 focus:ring-red-200' : ''}
                                          ${req.status === 'in_progress' ? 'bg-amber-50 text-amber-700 border-amber-200 focus:ring-amber-200' : ''}
@@ -298,6 +452,8 @@ _منصة مرافقة_`;
                                             <option value="in_progress">{t('in_progress')}</option>
                                             <option value="completed">{t('completed')}</option>
                                         </select>
+                                        {req.originalValues?.status && renderTooltip(t(req.originalValues.status as string), req.modifiedBy, req.modificationReason)}
+
                                         {/* Icon overlay */}
                                         <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
                                             {req.status === 'pending' && <Clock className="w-3.5 h-3.5 text-red-600" />}
@@ -309,14 +465,17 @@ _منصة مرافقة_`;
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className={`px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 ${req.status === 'pending' ? 'text-red-600 bg-red-100' :
-                                        req.status === 'in_progress' ? 'text-amber-600 bg-amber-100' :
-                                            'text-emerald-600 bg-emerald-100'
-                                        }`}>
-                                        {req.status === 'pending' && <Clock className="w-3 h-3" />}
-                                        {req.status === 'in_progress' && <Wrench className="w-3 h-3" />}
-                                        {req.status === 'completed' && <CheckCircle className="w-3 h-3" />}
-                                        {t(req.status === 'pending' ? 'pending_requests' : req.status)}
+                                    <div className="relative group">
+                                        <div className={`px-2 py-1 rounded-md text-xs font-bold flex items-center gap-1 ${req.status === 'pending' ? 'text-red-600 bg-red-100' :
+                                            req.status === 'in_progress' ? 'text-amber-600 bg-amber-100' :
+                                                'text-emerald-600 bg-emerald-100'
+                                            }`}>
+                                            {req.status === 'pending' && <Clock className="w-3 h-3" />}
+                                            {req.status === 'in_progress' && <Wrench className="w-3 h-3" />}
+                                            {req.status === 'completed' && <CheckCircle className="w-3 h-3" />}
+                                            {t(req.status === 'pending' ? 'pending_requests' : req.status)}
+                                        </div>
+                                        {req.originalValues?.status && renderTooltip(t(req.originalValues.status as string), req.modifiedBy, req.modificationReason)}
                                     </div>
                                 )}
 
@@ -402,7 +561,6 @@ _منصة مرافقة_`;
                                     </div>
                                 </div>
 
-                                {/* Date Input */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-1">تاريخ الطلب</label>
                                     <div className="relative">
@@ -444,7 +602,7 @@ _منصة مرافقة_`;
                             <button onClick={() => setShowModal(false)} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors">
                                 {t('cancel')}
                             </button>
-                            <button onClick={handleSave} className="flex-1 bg-amber-600 text-white font-bold py-3 rounded-xl hover:bg-amber-700 shadow-md transition-colors">
+                            <button onClick={handleSaveNew} className="flex-1 bg-amber-600 text-white font-bold py-3 rounded-xl hover:bg-amber-700 shadow-md transition-colors">
                                 {t('save')}
                             </button>
                         </div>
@@ -452,7 +610,113 @@ _منصة مرافقة_`;
                 </div>
             )}
 
-            {/* Notify Bursar Modal */}
+            {/* Edit/Update Modal */}
+            {editingRequest && tempEditData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b flex justify-between items-center bg-blue-50 rounded-t-2xl">
+                            <h3 className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                                <Edit2 className="w-6 h-6 text-blue-600" />
+                                {language === 'ar' ? 'تعديل الطلب' : 'Modifier la demande'}
+                            </h3>
+                            <button onClick={() => setEditingRequest(null)} className="text-gray-400 hover:text-gray-600">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto">
+                            <form className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">العنوان</label>
+                                    <input
+                                        type="text"
+                                        value={tempEditData.title}
+                                        onChange={(e) => handleValuesChange('title', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">الحالة</label>
+                                        <select
+                                            value={tempEditData.status}
+                                            onChange={(e) => handleValuesChange('status', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="pending">{t('pending_requests')}</option>
+                                            <option value="in_progress">{t('in_progress')}</option>
+                                            <option value="completed">{t('completed')}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-1">الأولوية</label>
+                                        <select
+                                            value={tempEditData.priority}
+                                            onChange={(e) => handleValuesChange('priority', e.target.value)}
+                                            className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        >
+                                            <option value="low">{t('low')}</option>
+                                            <option value="medium">{t('medium')}</option>
+                                            <option value="high">{t('high')}</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">{t('location')}</label>
+                                    <input
+                                        type="text"
+                                        value={tempEditData.location}
+                                        onChange={(e) => handleValuesChange('location', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1">الوصف</label>
+                                    <textarea
+                                        value={tempEditData.description}
+                                        onChange={(e) => handleValuesChange('description', e.target.value)}
+                                        className="w-full border border-gray-300 rounded-xl p-3 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none h-24"
+                                    />
+                                </div>
+
+                                {/* Reason for Edit (Visible to Non-Admins) */}
+                                {!Permissions.canManageUsers(currentUser) && (
+                                    <div className="mt-4 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                                        <label className="block text-sm font-bold text-orange-800 mb-2">
+                                            {language === 'ar' ? 'سبب التعديل (إلزامي)' : 'Raison de la modification (Requis)'}
+                                        </label>
+                                        <textarea
+                                            value={editReason}
+                                            onChange={(e) => setEditReason(e.target.value)}
+                                            placeholder={language === 'ar' ? 'يرجى ذكر سبب التغيير...' : 'Veuillez indiquer la raison...'}
+                                            className="w-full border border-orange-200 rounded-xl p-3 h-20 bg-white text-gray-900 focus:ring-2 focus:ring-orange-500 outline-none resize-none text-sm"
+                                        />
+                                        <p className="text-xs text-orange-600 mt-2">
+                                            {language === 'ar'
+                                                ? '⚠️ سيتم إرسال إشعار تلقائي للمدير بالتحديثات.'
+                                                : '⚠️ Une notification sera envoyée automatiquement au directeur.'}
+                                        </p>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+
+                        <div className="p-6 border-t flex gap-3 flex-shrink-0 bg-gray-50 rounded-b-2xl">
+                            <button onClick={() => setEditingRequest(null)} className="flex-1 bg-white border border-gray-300 text-gray-700 font-bold py-3 rounded-xl hover:bg-gray-100 transition-colors">
+                                {t('cancel')}
+                            </button>
+                            <button onClick={handleSaveEdit} className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 shadow-md transition-colors">
+                                {t('save')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Notify Bursar Modal (For New Requests) */}
             {showNotifyModal && lastCreatedRequest && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 flex flex-col max-h-[90vh]">
