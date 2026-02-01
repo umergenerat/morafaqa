@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Initialize PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.449/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
 // Helper to get AI instance
 const getAiInstance = () => {
@@ -126,7 +126,8 @@ export const generateStudentReport = async (
     });
 
     if (response.text) {
-      return JSON.parse(response.text);
+      const cleanText = response.text.replace(/```json|```/g, '').trim();
+      return JSON.parse(cleanText);
     }
     return null;
 
@@ -162,7 +163,7 @@ export const draftParentMessage = async (
         - اللهجة: رسمية ومهذبة.
       `,
     });
-    return response.text || "";
+    return response.text ? response.text.replace(/```/g, '').trim() : "";
   } catch (e) {
     console.error(e);
     return "حدث خطأ في صياغة الرسالة";
@@ -293,17 +294,20 @@ export const analyzeUploadedDocument = async (
   const fullPrompt = `${systemInstructions}\n\n${promptContent}`;
 
   try {
+    const contentInput = parts.length > 0
+      ? { role: 'user', parts: [...parts, { text: systemInstructions }] }
+      : { role: 'user', parts: [{ text: fullPrompt }] };
+
     const response = await ai.models.generateContent({
       model: 'gemini-1.5-flash',
-      contents: parts.length > 0
-        ? { parts: [...parts, { text: systemInstructions }] }
-        : fullPrompt,
+      contents: [contentInput],
       config: {
         responseMimeType: "application/json"
       }
     });
 
-    return JSON.parse(response.text || "{}");
+    const text = response.text ? response.text.replace(/```json|```/g, '').trim() : "{}";
+    return JSON.parse(text);
   } catch (error) {
     console.error("Analysis Error:", error);
     throw new Error("Failed to process document");

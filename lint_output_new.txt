@@ -1,0 +1,123 @@
+
+> morafaqah@0.1.0 lint
+> eslint . --report-unused-disable-directives --max-warnings 100
+
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\components\ImportModal.tsx
+   18:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  123:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:63  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:50  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  253:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  255:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  288:57  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  290:54  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  364:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\components\SaveControls.tsx
+  2:16  warning  'X' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\context\DataContext.tsx
+   21:7    warning  'STORAGE_KEYS' is assigned a value but never used                                                                               @typescript-eslint/no-unused-vars
+   37:7    warning  'loadData' is assigned a value but never used                                                                                   @typescript-eslint/no-unused-vars
+  145:14   warning  'e' is defined but never used                                                                                                   @typescript-eslint/no-unused-vars
+  216:102  warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  217:98   warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  218:106  warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  219:95   warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  220:104  warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  222:109  warning  React Hook React.useMemo has a missing dependency: 'getFilteredData'. Either include it or remove the dependency array          react-hooks/exhaustive-deps
+  282:23   warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  295:92   warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  309:17   warning  Unexpected any. Specify a different type                                                                                        @typescript-eslint/no-explicit-any
+  522:14   warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\context\LanguageContext.tsx
+  329:14  warning  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\lib\supabase.ts
+  5:29  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Academics.tsx
+    5:10  warning  'UserRole' is defined but never used      @typescript-eslint/no-unused-vars
+    8:3   warning  'LineChart' is defined but never used     @typescript-eslint/no-unused-vars
+  414:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  414:53  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Activities.tsx
+   27:40  warning  'UserRole' is defined but never used           @typescript-eslint/no-unused-vars
+   54:9   warning  'isParent' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  241:50  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  432:97  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+  446:99  warning  Unexpected any. Specify a different type       @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Attendance.tsx
+    2:65   warning  'MapPin' is defined but never used                                                                                                    @typescript-eslint/no-unused-vars
+    2:127  warning  'ArrowLeftRight' is defined but never used                                                                                            @typescript-eslint/no-unused-vars
+   91:19   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+   92:19   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+  111:6    warning  React Hook useMemo has unnecessary dependencies: 'attendanceRecords' and 'today'. Either exclude them or remove the dependency array  react-hooks/exhaustive-deps
+  143:19   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+  144:19   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+  536:74   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+  550:76   warning  Unexpected any. Specify a different type                                                                                              @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Behavior.tsx
+    5:26   warning  'UserRole' is defined but never used         @typescript-eslint/no-unused-vars
+  119:10   warning  'COLORS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  316:75   warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  489:106  warning  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Dashboard.tsx
+  17:18  warning  'Send' is defined but never used                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  27:7   warning  'COLORS' is assigned a value but never used                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  59:9   warning  The 'linkedStudentIds' logical expression could make the dependencies of useMemo Hook (at line 140) change on every render. To fix this, wrap the initialization of 'linkedStudentIds' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  59:9   warning  The 'linkedStudentIds' logical expression could make the dependencies of useMemo Hook (at line 158) change on every render. To fix this, wrap the initialization of 'linkedStudentIds' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Dining.tsx
+   2:57   warning  'Download' is defined but never used          @typescript-eslint/no-unused-vars
+   2:115  warning  'User' is defined but never used              @typescript-eslint/no-unused-vars
+  27:9    warning  'isAdmin' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  45:29   warning  Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Health.tsx
+  213:97  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Login.tsx
+  4:16  warning  'Mail' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Maintenance.tsx
+   92:33   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  194:73   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  261:37   error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\Maintenance.tsx:261:37
+  259 |         // Short reference from ID (last 4 chars)
+  260 |         const refId = request.id.slice(-4).toUpperCase();
+> 261 |         const daysAgo = Math.floor((Date.now() - new Date(request.dateReported).getTime()) / (1000 * 60 * 60 * 24));
+      |                                     ^^^^^^^^^^ Cannot call impure function
+  262 |
+  263 |         const message = `⏰ *تذكير: طلب صيانة معلق*
+  264 |  react-hooks/purity
+  298:43   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  435:85   warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  540:117  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  554:121  warning  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\pages\StudentList.tsx
+    3:17  warning  'Filter' is defined but never used                 @typescript-eslint/no-unused-vars
+    4:13  warning  'GraduationCap' is defined but never used          @typescript-eslint/no-unused-vars
+  160:9   warning  'getTopicIcon' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  572:70  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  579:82  warning  Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+C:\Users\aitlo\OneDrive\Bureau\Nouveau dossier (2)\morafaqah\services\geminiService.ts
+   50:52  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  178:12  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  183:14  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 73 problems (1 error, 72 warnings)
+
