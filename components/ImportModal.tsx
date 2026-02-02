@@ -145,19 +145,27 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "Ø§Ù
           }
         }
       } else if (type === 'academics') {
-        if (item.academicId) {
+        const itemAcademicId = item.academicId ? String(item.academicId).trim().toUpperCase() : '';
+
+        // 1. Try match by Massar ID first (Most reliable)
+        if (itemAcademicId) {
           existing = academicRecords.find(r => {
-            const student = students.find(s => s.academicId === String(item.academicId));
+            const student = students.find(s => s.academicId && s.academicId.trim().toUpperCase() === itemAcademicId);
             return student && r.studentId === student.id && r.semester === (item.semester || 'S1');
           });
-          // Also try to find student by ID to link
-          const studentById = students.find(s => s.academicId === String(item.academicId));
+
+          // Link student if found
+          const studentById = students.find(s => s.academicId && s.academicId.trim().toUpperCase() === itemAcademicId);
           if (studentById) item.studentId = studentById.id;
         }
 
-        if (!existing && !item.studentId && item.studentName) {
-          const student = students.find(s => s.fullName.trim().toLowerCase().includes(item.studentName.trim().toLowerCase()));
+        // 2. Fallback to Name matching if not matched yet
+        if (!item.studentId && item.studentName) {
+          const normName = item.studentName.trim().toLowerCase();
+          const student = students.find(s => s.fullName.trim().toLowerCase() === normName);
+
           if (student) {
+            // Check if record exists for this matched student
             existing = academicRecords.find(r => r.studentId === student.id && r.semester === (item.semester || 'S1'));
             item.studentId = student.id;
           }

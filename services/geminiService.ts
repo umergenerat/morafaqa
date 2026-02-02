@@ -273,9 +273,7 @@ export const analyzeUploadedDocument = async (
             "generalAverage": Number (0-20),
             "rank": Number (optional),
             "subjects": [
-              { "subjectName": "Language Name (Arabic/French/English)", "grade": Number, "coefficient": Number },
-              { "subjectName": "Science Subject (Math/Physics/Life Science)", "grade": Number, "coefficient": Number },
-              { "subjectName": "Social Studies/Islamic Ed/PE", "grade": Number, "coefficient": Number }
+              { "subjectName": "Exact Subject Name found in doc", "grade": Number, "coefficient": Number }
             ]
           }
         ]
@@ -283,18 +281,18 @@ export const analyzeUploadedDocument = async (
     `;
     // Hints for specific columns seen in user data
     contextInstructions += `
-    Look for these specific columns:
-    - رقم التلميذ / رمز مسار (Academic ID) -> map to "academicId"
-    - اسم التلاميذ / الإسم والنسب (Student Name) -> map to "studentName"
-    - اللغة العربية, اللغة الفرنسية, اللغة الإنجليزية
-    - الاجتماعيات, التربية الإسلامية, التربية البدنية
-    - الرياضيات, علوم الحياة والأرض, الفيزياء والكيمياء
-    - المعلوميات, التكنولوجيا
-    
-    CRITICAL FOR EXCEL/SPREADSHEET:
-    - The input JSON is a raw dump of the sheet.
-    - Keys will be in ARABIC. You must map them to the English keys in the specific "subjects" structure.
-    - "academicId" MUST be extracted from "رقم التلميذ" or "رمز مسار".
+    CRITICAL INSTRUCTIONS:
+    1. **Extract ALL subjects** found in the document. Do not limit to a specific list.
+    2. **Map Columns**:
+       - "رقم التلميذ" or "رمز مسار" or "Code Massar" -> "academicId"
+       - "اسم التلميذ" or "الإسم والنسب" -> "studentName"
+       - "المعدل العام" or "Moyenne Générale" -> "generalAverage"
+    3. **Subject Grades**:
+       - Extract the grade (Note) and Coefficient (if available).
+       - If Coefficient is missing, default to 1.
+    4. **Data Cleanup**:
+       - Remove any "NON-GRADED" or empty rows.
+       - Ensure "generalAverage" is a number.
     `;
   }
 
