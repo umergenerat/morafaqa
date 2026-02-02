@@ -259,7 +259,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (setRes.data) {
           setSchoolSettings({
             institutionName: setRes.data.institutionName || DEFAULT_SETTINGS.institutionName,
-            schoolYear: setRes.data.schoolYear || DEFAULT_SETTINGS.schoolYear
+            schoolYear: setRes.data.schoolYear || DEFAULT_SETTINGS.schoolYear,
+            geminiApiKey: setRes.data.geminiApiKey
           });
           if (setRes.data.weeklyMenus) {
             setWeeklyMenus(setRes.data.weeklyMenus);

@@ -26,6 +26,7 @@ export interface SchoolSettings {
   institutionName: string;
   schoolYear: string;
   logoUrl?: string;
+  geminiApiKey?: string; // Client-side configurable API Key
 }
 
 export type ScholarshipType = 'full' | 'half' | 'lunch' | 'none';

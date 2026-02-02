@@ -7,10 +7,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
 
 // Helper to get AI instance
-const getAiInstance = () => {
-  const key = import.meta.env.VITE_GEMINI_API_KEY;
+const getAiInstance = (customKey?: string) => {
+  const key = customKey || import.meta.env.VITE_GEMINI_API_KEY;
   if (!key) {
-    console.warn("VITE_GEMINI_API_KEY is missing in environment variables");
+    console.warn("Gemini API Key is missing");
     return null;
   }
   return new GoogleGenAI({ apiKey: key });
@@ -174,10 +174,11 @@ export type ImportContext = 'students' | 'health' | 'attendance' | 'academics';
 
 export const analyzeUploadedDocument = async (
   file: File,
-  context: ImportContext
+  context: ImportContext,
+  customApiKey?: string
 ): Promise<any> => {
-  const ai = getAiInstance();
-  if (!ai) throw new Error("API Key Missing.");
+  const ai = getAiInstance(customApiKey);
+  if (!ai) throw new Error("API Key Missing. Please check Settings.");
 
   let promptContent = '';
   let parts: any[] = [];
