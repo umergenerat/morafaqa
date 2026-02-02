@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
 import { UserRole } from '../types';
-import { Save, School, Calendar, CheckCircle, ShieldAlert } from 'lucide-react';
+import { Save, School, Calendar, CheckCircle, ShieldAlert, Key } from 'lucide-react';
 
 const Settings: React.FC = () => {
   const { schoolSettings, updateSchoolSettings, currentUser, resetData } = useData();
@@ -10,7 +10,8 @@ const Settings: React.FC = () => {
 
   const [formData, setFormData] = useState({
     institutionName: schoolSettings.institutionName,
-    schoolYear: schoolSettings.schoolYear
+    schoolYear: schoolSettings.schoolYear,
+    geminiApiKey: schoolSettings.geminiApiKey || ''
   });
   const [success, setSuccess] = useState(false);
 
@@ -30,7 +31,8 @@ const Settings: React.FC = () => {
     updateSchoolSettings({
       ...schoolSettings,
       institutionName: formData.institutionName,
-      schoolYear: formData.schoolYear
+      schoolYear: formData.schoolYear,
+      geminiApiKey: formData.geminiApiKey
     });
     setSuccess(true);
     setTimeout(() => setSuccess(false), 3000);
@@ -106,6 +108,36 @@ const Settings: React.FC = () => {
             </button>
           </div>
         </form>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-bold text-gray-800 flex items-center gap-2">
+            <Key className="w-5 h-5 text-amber-600" />
+            {t('connection_keys')}
+          </h3>
+        </div>
+
+        <div className="p-8 space-y-6">
+          <div className="grid grid-cols-1 gap-8">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                {t('gemini_api_key')}
+              </label>
+              <div className="relative">
+                <Key className="absolute top-3.5 right-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="password"
+                  value={formData.geminiApiKey}
+                  onChange={(e) => setFormData({ ...formData, geminiApiKey: e.target.value })}
+                  className="w-full pr-10 pl-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-shadow text-gray-900 bg-white font-mono"
+                  placeholder={t('key_placeholder')}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">{t('gemini_api_desc')}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-red-50 rounded-2xl p-6 border border-red-100 flex flex-col md:flex-row justify-between items-center gap-4">

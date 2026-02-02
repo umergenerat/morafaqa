@@ -76,6 +76,10 @@ const translations = {
     'settings_desc': 'تعديل هوية المؤسسة والموسم الدراسي ومفاتيح الربط',
     'success_update': 'تم تحديث الإعدادات بنجاح',
     'api_settings': 'إعدادات الذكاء الاصطناعي',
+    'connection_keys': 'مفاتيح الربط',
+    'gemini_api_key': 'مفتاح Gemini API',
+    'gemini_api_desc': 'يستخدم هذا المفتاح لتمكين ميزات الذكاء الاصطناعي مثل تحليل الصور والتقارير.',
+    'key_placeholder': 'أدخل مفتاح الربط هنا...',
     // Dining Notification
     'notify_kitchen': 'إبلاغ المطعمة',
     'daily_count': 'العدد اليومي',
@@ -221,6 +225,10 @@ const translations = {
     'settings_desc': 'Modifier l\'identité de l\'établissement et les clés API',
     'success_update': 'Paramètres mis à jour avec succès',
     'api_settings': 'Paramètres IA',
+    'connection_keys': 'Clés de connexion',
+    'gemini_api_key': 'Clé API Gemini',
+    'gemini_api_desc': 'Cette clé est utilisée pour activer les fonctionnalités d\'IA telles que l\'analyse d\'images et les rapports.',
+    'key_placeholder': 'Entrez la clé ici...',
     // Dining Notification
     'notify_kitchen': 'Informer la cuisine',
     'daily_count': 'Effectif du jour',
@@ -313,9 +321,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <LanguageContext.Provider value={{ 
-      language, 
-      setLanguage, 
+    <LanguageContext.Provider value={{
+      language,
+      setLanguage,
       t,
       dir: language === 'ar' ? 'rtl' : 'ltr'
     }}>
