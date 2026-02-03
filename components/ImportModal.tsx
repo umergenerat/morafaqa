@@ -315,6 +315,24 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
       } else if (type === 'academics') {
         const itemAcademicId = item.academicId ? String(item.academicId).trim().toUpperCase() : '';
 
+        // Helper function to normalize Arabic names for better matching
+        const normalizeName = (name: string): string => {
+          return name
+            .trim()
+            .toLowerCase()
+            // Remove Arabic diacritics (tashkeel)
+            .replace(/[\u064B-\u065F\u0670]/g, '')
+            // Normalize common variations
+            .replace(/[أإآا]/g, 'ا')
+            .replace(/[ؤ]/g, 'و')
+            .replace(/[ئ]/g, 'ي')
+            .replace(/[ة]/g, 'ه')
+            .replace(/[ى]/g, 'ي')
+            // Remove extra spaces
+            .replace(/\s+/g, ' ')
+            .trim();
+        };
+
         // 1. Try match by Massar ID first (Most reliable)
         if (itemAcademicId) {
           existing = academicRecords.find(r => {
@@ -327,15 +345,28 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           if (studentById) item.studentId = studentById.id;
         }
 
-        // 2. Fallback to Name matching if not matched yet
+        // 2. Fallback to Name matching if not matched yet (with improved fuzzy matching)
         if (!item.studentId && item.studentName) {
-          const normName = item.studentName.trim().toLowerCase();
-          const student = students.find(s => s.fullName.trim().toLowerCase() === normName);
+          const normItemName = normalizeName(item.studentName);
+
+          // Try exact match first
+          let student = students.find(s => normalizeName(s.fullName) === normItemName);
+
+          // Try partial/contains match if exact match fails
+          if (!student) {
+            student = students.find(s => {
+              const normStudentName = normalizeName(s.fullName);
+              // Check if either name contains the other
+              return normStudentName.includes(normItemName) || normItemName.includes(normStudentName);
+            });
+          }
 
           if (student) {
             // Check if record exists for this matched student
-            existing = academicRecords.find(r => r.studentId === student.id && r.semester === (item.semester || 'S1'));
+            existing = academicRecords.find(r => r.studentId === student!.id && r.semester === (item.semester || 'S1'));
             item.studentId = student.id;
+          } else {
+            console.warn(`[ImportModal] No matching student found for: ${item.studentName} (ID: ${item.academicId || 'N/A'})`);
           }
         }
       } else if (type === 'attendance') {
@@ -454,10 +485,58 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
         }
         else if (type === 'academics') {
           let studentId = item.studentId;
-          if (!studentId) {
-            const student = students.find(s => s.fullName.includes(item.studentName));
+
+          // Try to find student by name if not already linked
+          if (!studentId && item.studentName) {
+            // Normalize name for matching
+            const normalizeName = (name: string): string => {
+              return name.trim().toLowerCase()
+                .replace(/[\u064B-\u065F\u0670]/g, '')
+                .replace(/[أإآا]/g, 'ا')
+                .replace(/[ؤ]/g, 'و')
+                .replace(/[ئ]/g, 'ي')
+                .replace(/[ة]/g, 'ه')
+                .replace(/[ى]/g, 'ي')
+                .replace(/\s+/g, ' ')
+                .trim();
+            };
+
+            const normItemName = normalizeName(item.studentName);
+
+            // Try multiple matching strategies
+            let student = students.find(s => normalizeName(s.fullName) === normItemName);
+            if (!student) {
+              student = students.find(s => s.fullName.includes(item.studentName) || item.studentName.includes(s.fullName));
+            }
+            if (!student && item.academicId) {
+              student = students.find(s => s.academicId?.toUpperCase() === String(item.academicId).toUpperCase());
+            }
+
             if (student) studentId = student.id;
           }
+
+          // AUTO-CREATE STUDENT if still not found
+          if (!studentId && item.studentName) {
+            console.log(`[ImportModal] Auto-creating student: ${item.studentName} (ID: ${item.academicId || 'N/A'})`);
+            studentId = crypto.randomUUID();
+
+            // Create new student with available data
+            addStudent({
+              id: studentId,
+              fullName: item.studentName,
+              gender: 'male', // Default
+              academicId: item.academicId ? String(item.academicId) : `GEN-${Math.floor(Math.random() * 10000)}`,
+              grade: 'Unknown',
+              scholarshipNumber: '',
+              scholarshipType: 'full',
+              roomNumber: '',
+              guardianPhone: '',
+              guardianAddress: '',
+              guardianId: '',
+              photoUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.studentName)}&background=random`
+            } as any);
+          }
+
           if (studentId) {
             const payload = {
               id: item._existingId || crypto.randomUUID(),
@@ -476,6 +555,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             } else {
               addAcademicRecord(payload as any);
             }
+          } else {
+            console.error(`[ImportModal] Failed to save academic record - no student name: `, item);
           }
         }
       } catch (e) {
