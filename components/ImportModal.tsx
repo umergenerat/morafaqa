@@ -144,53 +144,98 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           const sheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-          // Check if it looks like our template (has Academic ID column)
-          const hasIdCol = jsonData.length > 0 && Object.keys(jsonData[0] as object).some(k => k.includes('Academic ID'));
-
-          if (!hasIdCol) {
-            resolve(null); // Not our template, fallback to AI
+          if (jsonData.length === 0) {
+            resolve(null);
             return;
           }
 
+          // Helper to find key similarity
+          const findKey = (row: any, keywords: string[]) => {
+            return Object.keys(row).find(k =>
+              keywords.some(kw => k.toLowerCase().includes(kw.toLowerCase()))
+            );
+          };
+
+          // Check if it looks like a valid academic file (must have Name or ID)
+          const firstRow = jsonData[0] as any;
+          const idKey = findKey(firstRow, ['Academic ID', 'Code Massar', 'رقم التلميذ', 'CNE', 'رقم مسار', 'رمز مسار']);
+          const nameKey = findKey(firstRow, ['Student Name', 'Nom et Prénom', 'الإسم والنسب', 'اسم التلميذ', 'Nom', 'Prénom']);
+
+          if (!idKey && !nameKey) {
+            resolve(null); // Fallback to AI if absolutely no recognizable headers
+            return;
+          }
+
+          // Identify Subject Columns
+          const subjectKeys: { key: string, subjectName: string, type: 'grade' | 'coeff' }[] = [];
+
+          Object.keys(firstRow).forEach(key => {
+            const normKey = key.trim();
+            // Check against standardized subjects
+            const matchedSubject = STANDARDIZED_SUBJECTS.find(sub => normKey.includes(sub));
+
+            if (matchedSubject) {
+              // Determine if it's a Grade or Coefficient (default to grade if not specified)
+              if (normKey.includes('Coeff') || normKey.includes('معامل')) {
+                subjectKeys.push({ key, subjectName: matchedSubject, type: 'coeff' });
+              } else {
+                // It's likely the grade column (e.g., "Note Math" or just "Math")
+                // Avoid duplicate "Note" columns if they exist separate from subject name, 
+                // but usually exports have "Math" and "Math Coeff" OR "Note Math"
+                if (!normKey.includes('ملاحظة') && !normKey.includes('Obs')) {
+                  subjectKeys.push({ key, subjectName: matchedSubject, type: 'grade' });
+                }
+              }
+            }
+          });
+
           // Parse Rows
           const parsed = jsonData.map((row: any) => {
-            // Find ID key
-            const idKey = Object.keys(row).find(k => k.includes('Academic ID'));
             const academicId = idKey ? row[idKey] : null;
+            const fullName = nameKey ? row[nameKey] : "Unknown";
 
+            // Extract Subjects
             const subjects = STANDARDIZED_SUBJECTS.map(sub => {
-              const noteKey = Object.keys(row).find(k => k.includes(sub) && k.includes('Note'));
-              const coeffKey = Object.keys(row).find(k => k.includes(sub) && k.includes('Coeff'));
+              const gradeKey = subjectKeys.find(k => k.subjectName === sub && k.type === 'grade')?.key;
+              const coeffKey = subjectKeys.find(k => k.subjectName === sub && k.type === 'coeff')?.key;
 
-              if (noteKey && row[noteKey] !== undefined && row[noteKey] !== "") {
+              if (gradeKey && row[gradeKey] !== undefined && row[gradeKey] !== "") {
                 return {
                   subjectName: sub,
-                  grade: Number(row[noteKey]),
-                  coefficient: coeffKey ? Number(row[coeffKey]) || 1 : 1
+                  grade: Number(row[gradeKey]),
+                  coefficient: coeffKey ? (Number(row[coeffKey]) || 1) : 1
                 };
               }
               return null;
             }).filter(s => s !== null);
 
-            // Calculate average if not present (optional, usually recalculated in UI or backend, but let's take provided or 0)
-            // Actually, we pass it to processParsedData which handles matching.
-            // We return a "Raw Item" structure similar to what AI returns
+            // Extract General Average
+            const avgKey = findKey(row, ['General Average', 'Moyenne Générale', 'المعدل العام', 'Moyenne annuel', 'معدل الدورة', 'Moyenne']);
+            const generalAverage = avgKey ? Number(row[avgKey]) : 0;
+
+            // Extract Rank
+            const rankKey = findKey(row, ['Rank', 'Rang', 'الرتبة', 'رتبة']);
+            const rank = rankKey ? Number(row[rankKey]) : 0;
+
+            // Decision & Appreciation
+            const decisionKey = findKey(row, ['Decision', 'قرار', 'القرار']);
+            const appreciationKey = findKey(row, ['Appreciation', 'تقدير', 'التقدير']);
 
             return {
               academicId: academicId,
-              studentName: row["اسم التلميذ (Name)"] || "",
-              semester: "S1", // Default, user can change in UI or we could extract from filename/header if added
-              generalAverage: Number(row["المعدل العام (General Avg)"] || 0),
-              rank: Number(row["الرتبة (Rank)"] || 0),
+              studentName: fullName,
+              semester: "S1", // Default
+              generalAverage: generalAverage,
+              rank: rank,
               subjects: subjects,
-              teacherDecision: row["القرار (Decision)"],
-              appreciation: row["التقدير (Appreciation)"]
+              teacherDecision: decisionKey ? row[decisionKey] : undefined,
+              appreciation: appreciationKey ? row[appreciationKey] : undefined
             };
           });
 
           resolve(parsed);
         } catch (error) {
-          console.error("Template Parse Error", error);
+          console.error("Smart Template Parse Error", error);
           resolve(null);
         }
       };
