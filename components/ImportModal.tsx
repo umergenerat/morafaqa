@@ -144,78 +144,120 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           const sheet = workbook.Sheets[sheetName];
           const jsonData = XLSX.utils.sheet_to_json(sheet);
 
+          console.log('[ImportModal] Total rows in Excel:', jsonData.length);
+
           if (jsonData.length === 0) {
             resolve(null);
             return;
           }
 
-          // Helper to find key similarity
+          // Helper to find key similarity - improved matching
           const findKey = (row: any, keywords: string[]) => {
-            return Object.keys(row).find(k =>
-              keywords.some(kw => k.toLowerCase().includes(kw.toLowerCase()))
-            );
+            const keys = Object.keys(row);
+            for (const kw of keywords) {
+              // Exact match first
+              const exactMatch = keys.find(k => k.trim() === kw);
+              if (exactMatch) return exactMatch;
+              // Then partial match
+              const partialMatch = keys.find(k => k.includes(kw) || kw.includes(k));
+              if (partialMatch) return partialMatch;
+            }
+            return undefined;
           };
 
           // Check if it looks like a valid academic file (must have Name or ID)
           const firstRow = jsonData[0] as any;
-          const idKey = findKey(firstRow, ['Academic ID', 'Code Massar', 'رقم التلميذ', 'CNE', 'رقم مسار', 'رمز مسار']);
-          const nameKey = findKey(firstRow, ['Student Name', 'Nom et Prénom', 'الإسم والنسب', 'اسم التلميذ', 'Nom', 'Prénom']);
+          const allKeys = Object.keys(firstRow);
+          console.log('[ImportModal] Detected columns:', allKeys);
+
+          // Look for ID column with more variations
+          const idKey = findKey(firstRow, ['رقم مسار', 'Academic ID', 'Code Massar', 'رقم التلميذ', 'CNE', 'رمز مسار', 'مسار']);
+          // Look for Name column with more variations
+          const nameKey = findKey(firstRow, ['اسم التلميذ', 'الإسم والنسب', 'Student Name', 'Nom et Prénom', 'Nom', 'Prénom', 'الاسم']);
+
+          console.log('[ImportModal] ID Key:', idKey, '| Name Key:', nameKey);
 
           if (!idKey && !nameKey) {
+            console.log('[ImportModal] No ID or Name key found, falling back to AI');
             resolve(null); // Fallback to AI if absolutely no recognizable headers
             return;
           }
 
-          // Identify Subject Columns
+          // Identify Subject Columns - improved matching for exact column names
           const subjectKeys: { key: string, subjectName: string, type: 'grade' | 'coeff' }[] = [];
 
-          Object.keys(firstRow).forEach(key => {
+          allKeys.forEach(key => {
             const normKey = key.trim();
-            // Check against standardized subjects
-            const matchedSubject = STANDARDIZED_SUBJECTS.find(sub => normKey.includes(sub));
+
+            // Skip ID, Name, Average, Rank columns
+            if (normKey === idKey || normKey === nameKey ||
+              normKey.includes('المعدل') || normKey === 'رقم') {
+              return;
+            }
+
+            // Check against standardized subjects - look for any match
+            const matchedSubject = STANDARDIZED_SUBJECTS.find(sub => {
+              // Exact match
+              if (normKey === sub) return true;
+              // Partial match (subject name within column header or vice versa)
+              if (normKey.includes(sub) || sub.includes(normKey)) return true;
+              return false;
+            });
 
             if (matchedSubject) {
               // Determine if it's a Grade or Coefficient (default to grade if not specified)
               if (normKey.includes('Coeff') || normKey.includes('معامل')) {
                 subjectKeys.push({ key, subjectName: matchedSubject, type: 'coeff' });
-              } else {
-                // It's likely the grade column (e.g., "Note Math" or just "Math")
-                // Avoid duplicate "Note" columns if they exist separate from subject name, 
-                // but usually exports have "Math" and "Math Coeff" OR "Note Math"
-                if (!normKey.includes('ملاحظة') && !normKey.includes('Obs')) {
-                  subjectKeys.push({ key, subjectName: matchedSubject, type: 'grade' });
-                }
+              } else if (!normKey.includes('ملاحظة') && !normKey.includes('Obs')) {
+                subjectKeys.push({ key, subjectName: matchedSubject, type: 'grade' });
               }
             }
           });
 
-          // Parse Rows
-          const parsed = jsonData.map((row: any) => {
-            const academicId = idKey ? row[idKey] : null;
-            const fullName = nameKey ? row[nameKey] : "Unknown";
+          console.log('[ImportModal] Detected subject columns:', subjectKeys.map(s => s.key));
+
+          // Parse Rows - process ALL rows
+          const parsed = jsonData.map((row: any, index: number) => {
+            const academicId = idKey ? String(row[idKey] || '').trim() : null;
+            const fullName = nameKey ? String(row[nameKey] || 'Unknown').trim() : "Unknown";
 
             // Extract Subjects
-            const subjects = STANDARDIZED_SUBJECTS.map(sub => {
-              const gradeKey = subjectKeys.find(k => k.subjectName === sub && k.type === 'grade')?.key;
-              const coeffKey = subjectKeys.find(k => k.subjectName === sub && k.type === 'coeff')?.key;
+            const subjects = subjectKeys
+              .filter(sk => sk.type === 'grade')
+              .map(sk => {
+                const gradeValue = row[sk.key];
+                const coeffKey = subjectKeys.find(k => k.subjectName === sk.subjectName && k.type === 'coeff')?.key;
 
-              if (gradeKey && row[gradeKey] !== undefined && row[gradeKey] !== "") {
-                return {
-                  subjectName: sub,
-                  grade: Number(row[gradeKey]),
-                  coefficient: coeffKey ? (Number(row[coeffKey]) || 1) : 1
-                };
-              }
-              return null;
-            }).filter(s => s !== null);
+                if (gradeValue !== undefined && gradeValue !== "" && gradeValue !== null) {
+                  return {
+                    subjectName: sk.subjectName,
+                    grade: Number(gradeValue) || 0,
+                    coefficient: coeffKey ? (Number(row[coeffKey]) || 1) : 1
+                  };
+                }
+                return null;
+              }).filter(s => s !== null);
 
-            // Extract General Average
-            const avgKey = findKey(row, ['General Average', 'Moyenne Générale', 'المعدل العام', 'Moyenne annuel', 'معدل الدورة', 'Moyenne']);
-            const generalAverage = avgKey ? Number(row[avgKey]) : 0;
+            // Extract General Average - more variations
+            const avgKey = findKey(row, ['المعدل', 'المعدل العام', 'General Average', 'Moyenne Générale', 'Moyenne annuel', 'معدل الدورة', 'Moyenne']);
+            const generalAverage = avgKey ? (Number(row[avgKey]) || 0) : 0;
 
-            // Extract Rank
-            const rankKey = findKey(row, ['Rank', 'Rang', 'الرتبة', 'رتبة']);
-            const rank = rankKey ? Number(row[rankKey]) : 0;
+            // Extract Unified Exam Average (المعدل م)
+            const unifiedExamKey = allKeys.find(k => {
+              const trimmed = k.trim();
+              return trimmed === 'المعدل م' ||
+                trimmed.includes('معدل الامتحان الموحد') ||
+                trimmed.includes('Unified Exam') ||
+                trimmed.includes('Examen Unifié');
+            });
+            const unifiedExamAverage = unifiedExamKey ? (Number(row[unifiedExamKey]) || 0) : undefined;
+
+            // Extract Rank - look for رقم but avoid رقم مسار
+            let rank = 0;
+            const rankKey = allKeys.find(k => k.trim() === 'رقم' || k.includes('الرتبة') || k.includes('Rank') || k.includes('Rang'));
+            if (rankKey && rankKey !== idKey) {
+              rank = Number(row[rankKey]) || 0;
+            }
 
             // Decision & Appreciation
             const decisionKey = findKey(row, ['Decision', 'قرار', 'القرار']);
@@ -226,6 +268,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
               studentName: fullName,
               semester: "S1", // Default
               generalAverage: generalAverage,
+              unifiedExamAverage: unifiedExamAverage,
               rank: rank,
               subjects: subjects,
               teacherDecision: decisionKey ? row[decisionKey] : undefined,
@@ -233,6 +276,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
             };
           });
 
+          console.log('[ImportModal] Total parsed records:', parsed.length);
           resolve(parsed);
         } catch (error) {
           console.error("Smart Template Parse Error", error);
@@ -421,6 +465,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
               semester: item.semester || 'S1',
               schoolYear: new Date().getFullYear() + '/' + (new Date().getFullYear() + 1),
               generalAverage: Number(item.generalAverage) || 0,
+              unifiedExamAverage: item.unifiedExamAverage ? Number(item.unifiedExamAverage) : undefined,
               rank: item.rank,
               subjects: item.subjects || [],
               teacherDecision: item.teacherDecision || (item.generalAverage >= 10 ? 'ينتقل' : 'يكرر'),
@@ -492,6 +537,7 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           <>
             <SortHeader label="الطالب" sortKey="studentName" />
             <SortHeader label="المعدل العام" sortKey="generalAverage" />
+            <SortHeader label="معدل الامتحان الموحد" sortKey="unifiedExamAverage" />
             <SortHeader label="الدورة" sortKey="semester" />
           </>
         )}
@@ -576,6 +622,9 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           </td>
           <td className="px-4 py-2">
             <input type="number" disabled={disabled} value={item.generalAverage || 0} onChange={(e) => handleUpdateItem(item._tempId, 'generalAverage', e.target.value)} className={inputClass(item.generalAverage)} />
+          </td>
+          <td className="px-4 py-2">
+            <input type="number" disabled={disabled} value={item.unifiedExamAverage || ''} onChange={(e) => handleUpdateItem(item._tempId, 'unifiedExamAverage', e.target.value)} className={`bg-transparent outline-none w-full border-b border-transparent ${isAdmin ? 'focus:border-emerald-500' : ''}`} placeholder="—" />
           </td>
           <td className="px-4 py-2">
             <select disabled={disabled} value={item.semester || 'S1'} onChange={(e) => handleUpdateItem(item._tempId, 'semester', e.target.value)} className={`bg-transparent outline-none w-full border-b border-transparent ${isAdmin ? 'focus:border-emerald-500' : 'appearance-none'}`}>

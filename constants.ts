@@ -243,11 +243,15 @@ export const MOCK_ATTENDANCE: AttendanceRecord[] = [
 export const STANDARDIZED_SUBJECTS = [
   'الرياضيات',
   'الفيزياء',
+  'الفيزياء والكيمياء',
   'علوم الحياة والأرض',
   'اللغة العربية',
   'الفرنسية',
+  'اللغة الفرنسية',
   'الإنجليزية',
+  'الانجليزية',
   'التربية الإسلامية',
+  'التربية الاسلامية',
   'الاجتماعيات',
   'الفلسفة',
   'المعلوميات',
@@ -257,3 +261,11 @@ export const STANDARDIZED_SUBJECTS = [
   'الامتحان الموحد المحلي',
   'الامتحان الموحد الجهوي'
 ];
+
+// Mapping for subject name normalization (to handle variations)
+export const SUBJECT_ALIASES: Record<string, string> = {
+  'اللغة الفرنسية': 'الفرنسية',
+  'الانجليزية': 'الإنجليزية',
+  'التربية الاسلامية': 'التربية الإسلامية',
+  'الفيزياء والكيمياء': 'الفيزياء',
+};

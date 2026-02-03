@@ -159,6 +159,7 @@ export interface AcademicRecord {
   semester: 'S1' | 'S2'; // الدورة الأولى أو الثانية
   schoolYear: string;
   generalAverage: number; // المعدل العام
+  unifiedExamAverage?: number; // معدل الامتحان الموحد (المعدل م)
   rank?: number; // الرتبة
   subjects: SubjectGrade[];
   teacherDecision?: string; // قرار المجلس/الأستاذ
