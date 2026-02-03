@@ -239,3 +239,19 @@ export const MOCK_ATTENDANCE: AttendanceRecord[] = [
   { id: 'att17', studentId: 's2', date: '2026-01-30', status: 'present', type: 'study' },
   { id: 'att18', studentId: 's3', date: '2026-01-30', status: 'late', type: 'study' },
 ];
+
+export const STANDARDIZED_SUBJECTS = [
+  'الرياضيات',
+  'الفيزياء',
+  'علوم الحياة والأرض',
+  'اللغة العربية',
+  'الفرنسية',
+  'الإنجليزية',
+  'التربية الإسلامية',
+  'الاجتماعيات',
+  'الفلسفة',
+  'المعلوميات',
+  'التربية البدنية',
+  'الترجمة',
+  'التكنولوجيا'
+];

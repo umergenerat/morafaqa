@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Upload, FileSpreadsheet, Image as ImageIcon, FileText, Loader2, X, CheckCircle, AlertTriangle, RefreshCw, PlusCircle, Trash2, Lock, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { analyzeUploadedDocument, ImportContext } from '../services/geminiService';
+import * as XLSX from 'xlsx';
+import { STANDARDIZED_SUBJECTS } from '../constants';
 import { useData } from '../context/DataContext';
 import { UserRole } from '../types';
 
@@ -106,6 +108,17 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     setSortConfig(null);
 
     try {
+      // 1. Try Deterministic Template Parsing for Academics
+      if (type === 'academics' && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
+        const templateData = await parseExcelTemplate(file);
+        if (templateData && templateData.length > 0) {
+          processParsedData(templateData);
+          setProcessing(false);
+          return;
+        }
+      }
+
+      // 2. Fallback to Gemini AI
       const result = await analyzeUploadedDocument(file, type);
       if (result && result.data && Array.isArray(result.data)) {
         processParsedData(result.data);
@@ -118,6 +131,72 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     } finally {
       setProcessing(false);
     }
+  };
+
+  const parseExcelTemplate = async (file: File): Promise<any[] | null> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = e.target?.result;
+          const workbook = XLSX.read(data, { type: 'binary' });
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+          // Check if it looks like our template (has Academic ID column)
+          const hasIdCol = jsonData.length > 0 && Object.keys(jsonData[0] as object).some(k => k.includes('Academic ID'));
+
+          if (!hasIdCol) {
+            resolve(null); // Not our template, fallback to AI
+            return;
+          }
+
+          // Parse Rows
+          const parsed = jsonData.map((row: any) => {
+            // Find ID key
+            const idKey = Object.keys(row).find(k => k.includes('Academic ID'));
+            const academicId = idKey ? row[idKey] : null;
+
+            const subjects = STANDARDIZED_SUBJECTS.map(sub => {
+              const noteKey = Object.keys(row).find(k => k.includes(sub) && k.includes('Note'));
+              const coeffKey = Object.keys(row).find(k => k.includes(sub) && k.includes('Coeff'));
+
+              if (noteKey && row[noteKey] !== undefined && row[noteKey] !== "") {
+                return {
+                  subjectName: sub,
+                  grade: Number(row[noteKey]),
+                  coefficient: coeffKey ? Number(row[coeffKey]) || 1 : 1
+                };
+              }
+              return null;
+            }).filter(s => s !== null);
+
+            // Calculate average if not present (optional, usually recalculated in UI or backend, but let's take provided or 0)
+            // Actually, we pass it to processParsedData which handles matching.
+            // We return a "Raw Item" structure similar to what AI returns
+
+            return {
+              academicId: academicId,
+              studentName: row["اسم التلميذ (Name)"] || "",
+              semester: "S1", // Default, user can change in UI or we could extract from filename/header if added
+              generalAverage: Number(row["المعدل العام (General Avg)"] || 0),
+              rank: Number(row["الرتبة (Rank)"] || 0),
+              subjects: subjects,
+              teacherDecision: row["القرار (Decision)"],
+              appreciation: row["التقدير (Appreciation)"]
+            };
+          });
+
+          resolve(parsed);
+        } catch (error) {
+          console.error("Template Parse Error", error);
+          resolve(null);
+        }
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsBinaryString(file);
+    });
   };
 
   const processParsedData = (items: any[]) => {

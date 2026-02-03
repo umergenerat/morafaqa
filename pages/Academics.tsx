@@ -35,10 +35,12 @@ import {
   Save,
   Calculator,
   Users,
-  Percent
+  Percent,
+  FileSpreadsheet // Added icon
 } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 import * as XLSX from 'xlsx';
+import { STANDARDIZED_SUBJECTS } from '../constants';
 
 const Academics: React.FC = () => {
   const { students, academicRecords, addAcademicRecord, updateAcademicRecord, deleteAcademicRecord, currentUser, schoolSettings } = useData();
@@ -171,6 +173,52 @@ const Academics: React.FC = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report Card");
     XLSX.writeFile(wb, `${student?.fullName}_Report_${record.semester}.xlsx`);
+  };
+
+  // --- NEW: Download Excel Template ---
+  const handleDownloadTemplate = () => {
+    // 1. Prepare Headers: Basic Info + Subjects (Grade & Coeff)
+    const headers = [
+      "رقم التلميذ (Academic ID)",
+      "اسم التلميذ (Name)",
+      "المعدل العام (General Avg)",
+      "الرتبة (Rank)",
+      "القرار (Decision)",
+      "التقدير (Appreciation)"
+    ];
+
+    STANDARDIZED_SUBJECTS.forEach(sub => {
+      headers.push(`${sub} (Note)`);
+      headers.push(`${sub} (Coeff)`);
+    });
+
+    // 2. Prepare Data Rows (Pre-fill students)
+    const data = students.map(s => {
+      const row: any[] = [
+        s.academicId,
+        s.fullName,
+        "", // Avg
+        "", // Rank
+        "", // Decision
+        ""  // Appreciation
+      ];
+      // Empty cells for subjects
+      STANDARDIZED_SUBJECTS.forEach(() => {
+        row.push(""); // Note
+        row.push("1"); // Default Coeff
+      });
+      return row;
+    });
+
+    // 3. Create Sheet
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+
+    // Auto-adjust column width (heuristic)
+    ws['!cols'] = headers.map(() => ({ wch: 15 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "Morafaqah_Grades_Template.xlsx");
   };
 
   // --- CRUD Operations ---
@@ -314,11 +362,20 @@ const Academics: React.FC = () => {
           {!isParent && (
             <>
               <button
+                onClick={handleDownloadTemplate}
+                className="bg-white border border-gray-300 text-emerald-700 px-3 py-2.5 rounded-lg font-bold hover:bg-emerald-50 flex items-center gap-2 shadow-sm transition-all"
+                title="تحميل نموذج Excel للتعبئة"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                <span className="hidden xl:inline text-sm">تحميل نموذج</span>
+              </button>
+              <button
                 onClick={() => setShowImportModal(true)}
                 className="bg-white border border-gray-300 text-gray-700 px-3 py-2.5 rounded-lg font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all"
                 title={t('import_grades')}
               >
                 <Upload className="w-5 h-5" />
+                <span className="hidden xl:inline text-sm">استيراد</span>
               </button>
               <button
                 onClick={handleOpenAdd}

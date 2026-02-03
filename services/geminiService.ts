@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Student, BehaviorRecord, HealthRecord } from '../types';
+import { STANDARDIZED_SUBJECTS } from '../constants';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 
@@ -283,8 +284,10 @@ export const analyzeUploadedDocument = async (
     // Hints for specific columns seen in user data
     contextInstructions += `
     CRITICAL INSTRUCTIONS:
-    1. **Extract ALL subjects** found in the document. Do not limit to a specific list.
-    2. **Map Columns**:
+    1. **Extract ALL subjects** found in the document.
+    2. **Map discovered subjects** to the following Standard Subjects List where possible:
+       ${JSON.stringify(STANDARDIZED_SUBJECTS)}
+    3. **Map Columns**:
        - "رقم التلميذ" or "رمز مسار" or "Code Massar" -> "academicId"
        - "اسم التلميذ" or "الإسم والنسب" -> "studentName"
        - "المعدل العام" or "Moyenne Générale" -> "generalAverage"
