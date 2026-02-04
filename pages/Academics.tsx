@@ -138,6 +138,21 @@ const Academics: React.FC = () => {
     );
   }, [students, academicRecords, activeSemester, selectedGrade, isParent, searchTerm]);
 
+  // Unified Display Items
+  const displayItems = useMemo(() => {
+    const recorded = filteredRecords.map(r => ({ ...r, isMissing: false }));
+    const missing = missingRecordsStudents.map(s => ({ ...s, isMissing: true }));
+
+    if (showMissingOnly) return missing;
+
+    // Merge and sort by name
+    return [...recorded, ...missing].sort((a, b) => {
+      const nameA = a.isMissing ? (a as any).fullName : (students.find(s => s.id === (a as any).studentId)?.fullName || '');
+      const nameB = b.isMissing ? (b as any).fullName : (students.find(s => s.id === (b as any).studentId)?.fullName || '');
+      return nameA.localeCompare(nameB);
+    });
+  }, [filteredRecords, missingRecordsStudents, showMissingOnly, students]);
+
   // Calculations for Stats (Only for Admins/Teachers)
   const stats = useMemo(() => {
     if (filteredRecords.length === 0) return null;
@@ -501,8 +516,11 @@ const Academics: React.FC = () => {
             <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-indigo-500">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-bold text-gray-500">عدد التلاميذ</p>
-                  <h3 className="text-3xl font-bold text-gray-800 mt-1">{filteredRecords.length}</h3>
+                  <p className="text-sm font-bold text-gray-500">تغطية النتائج</p>
+                  <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                    {filteredRecords.length} <span className="text-sm text-gray-400">/ {filteredRecords.length + missingRecordsStudents.length}</span>
+                  </h3>
+                  <p className="text-[10px] text-gray-400 font-bold mt-1">طالب مسجل حالياً</p>
                 </div>
                 <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Users className="w-6 h-6" /></div>
               </div>
@@ -662,60 +680,56 @@ const Academics: React.FC = () => {
         </div>
       )}
 
-      {/* Results Grid / Missing Students List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {showMissingOnly ? (
-          missingRecordsStudents.length === 0 ? (
-            <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-gray-300">
-              <CheckCircle className="w-16 h-16 mx-auto text-emerald-200 mb-4" />
-              <p className="text-gray-400 font-medium">جميع تلاميذ هذا المستوى مسجلة نتائجهم.</p>
-            </div>
-          ) : (
-            missingRecordsStudents.map(student => (
-              <div key={student.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col sm:flex-row items-center p-5 gap-4 hover:shadow-md transition-shadow group">
-                <div className="relative">
-                  <img src={student.photoUrl} alt="" className="w-16 h-16 rounded-full border-2 border-gray-100" />
-                  <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-1 rounded-full shadow-sm">
-                    <AlertTriangle className="w-3 h-3" />
-                  </div>
-                </div>
-                <div className="flex-grow text-center sm:text-right">
-                  <h3 className="font-bold text-gray-900">{student.fullName}</h3>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 mt-1">
-                    <span className="text-xs text-gray-500 font-mono">ID: {student.academicId}</span>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{student.grade}</span>
-                  </div>
-                  <p className="text-[10px] text-red-500 font-bold mt-2">النتائج غير مسجلة حالياً لهذه الدورة</p>
-                </div>
-                <button
-                  onClick={() => {
-                    handleOpenAdd();
-                    setFormData(prev => ({ ...prev, studentId: student.id }));
-                  }}
-                  className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4" />
-                  تسجيل النتيجة
-                </button>
-              </div>
-            ))
-          )
-        ) : filteredRecords.length === 0 ? (
+        {displayItems.length === 0 ? (
           <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-gray-300">
             <FileText className="w-16 h-16 mx-auto text-gray-200 mb-4" />
             <p className="text-gray-400 font-medium">
               {isParent && currentUser && (!currentUser.linkedStudentIds || currentUser.linkedStudentIds.length === 0)
                 ? "لا يوجد تلاميذ مرتبطين بحسابك. المرجو مراجعة الإدارة."
-                : "لا توجد نتائج مسجلة لهذه الدورة."}
+                : "لا توجد نتائج مسجلة أو تلاميذ مطابقين لهذا البحث."}
             </p>
           </div>
         ) : (
-          filteredRecords.map(record => {
+          displayItems.map((item: any) => {
+            if (item.isMissing) {
+              const student = item as any;
+              return (
+                <div key={`missing-${student.id}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col sm:flex-row items-center p-5 gap-4 hover:shadow-md transition-shadow group border-r-4 border-r-amber-400">
+                  <div className="relative">
+                    <img src={student.photoUrl} alt="" className="w-16 h-16 rounded-full border-2 border-gray-100 object-cover" />
+                    <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-1 rounded-full shadow-sm">
+                      <AlertTriangle className="w-3 h-3" />
+                    </div>
+                  </div>
+                  <div className="flex-grow text-center sm:text-right">
+                    <h3 className="font-bold text-gray-900">{student.fullName}</h3>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 mt-1">
+                      <span className="text-xs text-gray-500 font-mono">ID: {student.academicId}</span>
+                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{student.grade}</span>
+                    </div>
+                    <p className="text-[10px] text-amber-600 font-bold mt-2">النتائج غير مسجلة حالياً لهذه الدورة</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleOpenAdd();
+                      setFormData(prev => ({ ...prev, studentId: student.id }));
+                    }}
+                    className="bg-emerald-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-emerald-700 flex items-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    <Plus className="w-4 h-4" />
+                    تسجيل النتيجة
+                  </button>
+                </div>
+              );
+            }
+
+            const record = item as AcademicRecord;
             const student = students.find(s => s.id === record.studentId);
             if (!student) return null;
 
             return (
-              <div key={record.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative group">
+              <div key={record.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow relative group border-r-4 border-r-blue-500">
                 {/* Admin Actions */}
                 {isAdminOrTeacher && (
                   <div className="absolute top-4 left-4 flex gap-1 opacity-100 transition-opacity">
@@ -730,7 +744,7 @@ const Academics: React.FC = () => {
 
                 <div className="p-5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                   <div className="flex items-center gap-3">
-                    <img src={student.photoUrl} alt="" className="w-12 h-12 rounded-full border border-gray-200" />
+                    <img src={student.photoUrl} alt="" className="w-12 h-12 rounded-full border border-gray-200 object-cover" />
                     <div>
                       <h3 className="font-bold text-gray-900 flex items-center gap-2">
                         {student.fullName}
