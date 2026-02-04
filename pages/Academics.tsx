@@ -36,7 +36,9 @@ import {
   Calculator,
   Users,
   Percent,
-  FileSpreadsheet // Added icon
+  FileSpreadsheet, // Added icon
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 import * as XLSX from 'xlsx';
@@ -48,6 +50,7 @@ const Academics: React.FC = () => {
   const [activeSemester, setActiveSemester] = useState<'S1' | 'S2'>('S1');
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState<string>('all');
 
   // Manual Add/Edit State
   const [showModal, setShowModal] = useState(false);
@@ -62,6 +65,14 @@ const Academics: React.FC = () => {
   // Filter Data Logic
   const filteredRecords = useMemo(() => {
     let records = academicRecords.filter(r => r.semester === activeSemester && students.some(s => s.id === r.studentId));
+
+    // Grade Filter
+    if (selectedGrade !== 'all') {
+      records = records.filter(r => {
+        const student = students.find(s => s.id === r.studentId);
+        return student?.grade === selectedGrade;
+      });
+    }
 
     // Parent Filter
     if (isParent && currentUser) {
@@ -79,7 +90,30 @@ const Academics: React.FC = () => {
     }
 
     return records;
-  }, [academicRecords, activeSemester, isParent, currentUser, searchTerm, students]);
+  }, [academicRecords, activeSemester, isParent, currentUser, searchTerm, students, selectedGrade]);
+
+  // Duplicate Name Detection
+  const duplicateStudentNames = useMemo(() => {
+    const nameCounts: Record<string, number> = {};
+    const recordsWithStudents = filteredRecords.map(r => ({
+      ...r,
+      studentName: students.find(s => s.id === r.studentId)?.fullName || ''
+    }));
+
+    recordsWithStudents.forEach(r => {
+      if (r.studentName) {
+        nameCounts[r.studentName] = (nameCounts[r.studentName] || 0) + 1;
+      }
+    });
+
+    return Object.keys(nameCounts).filter(name => nameCounts[name] > 1);
+  }, [filteredRecords, students]);
+
+  // All Unique Grades for Filter
+  const uniqueGrades = useMemo(() => {
+    const grades = new Set(students.map(s => s.grade));
+    return Array.from(grades).sort();
+  }, [students]);
 
   // Calculations for Stats (Only for Admins/Teachers)
   const stats = useMemo(() => {
@@ -565,15 +599,31 @@ const Academics: React.FC = () => {
 
       {/* Filter Bar */}
       {isAdminOrTeacher && (
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="بحث عن تلميذ..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-          />
-          <Search className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="بحث عن تلميذ..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
+            />
+            <Search className="absolute left-3 top-3.5 text-gray-400 w-5 h-5" />
+          </div>
+
+          <div className="flex items-center gap-2 min-w-[200px]">
+            <Filter className="w-5 h-5 text-gray-400" />
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm font-bold text-gray-700"
+            >
+              <option value="all">كل المستويات</option>
+              {uniqueGrades.map(grade => (
+                <option key={grade} value={grade}>{grade}</option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
@@ -611,8 +661,16 @@ const Academics: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <img src={student.photoUrl} alt="" className="w-12 h-12 rounded-full border border-gray-200" />
                     <div>
-                      <h3 className="font-bold text-gray-900">{student.fullName}</h3>
-                      <p className="text-xs text-gray-500 font-mono">ID: {student.academicId}</p>
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                        {student.fullName}
+                        {duplicateStudentNames.includes(student.fullName) && (
+                          <span className="bg-red-100 text-red-600 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border border-red-200" title="يوجد أكثر من تلميذ بهذا الاسم">
+                            <AlertTriangle className="w-3 h-3" />
+                            اسم مكرر
+                          </span>
+                        )}
+                      </h3>
+                      <p className="text-xs text-gray-500 font-mono">ID: {student.academicId} • {student.grade}</p>
                     </div>
                   </div>
                   <div className="text-center">
