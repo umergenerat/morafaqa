@@ -108,8 +108,8 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
     setSortConfig(null);
 
     try {
-      // 1. Try Deterministic Template Parsing for Academics
-      if (type === 'academics' && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
+      // 1. Try Deterministic Template Parsing
+      if ((type === 'academics' || type === 'students') && (file.name.endsWith('.xlsx') || file.name.endsWith('.csv'))) {
         const templateData = await parseExcelTemplate(file);
         if (templateData && templateData.length > 0) {
           processParsedData(templateData);
@@ -169,6 +169,41 @@ const ImportModal: React.FC<ImportModalProps> = ({ isOpen, onClose, title = "ا�
           const firstRow = jsonData[0] as any;
           const allKeys = Object.keys(firstRow);
           console.log('[ImportModal] Detected columns:', allKeys);
+
+          // --- STUDENTS TEMPLATE PARSING ---
+          if (type === 'students') {
+            const parsed = jsonData.map((row: any) => {
+              // Find Keys using synonyms
+              const nameKey = findKey(row, ["الاسم الكامل", "Name", "Student Name", "Nom"]);
+              const idKey = findKey(row, ["رقم مسار", "CNE", "Massar"]);
+              const genderKey = findKey(row, ["الجنس", "Gender"]);
+              const gradeKey = findKey(row, ["المستوى", "Grade", "Niveau"]);
+              const scholarshipIdKey = findKey(row, ["رقم المنحة", "Scholarship No"]);
+              const scholarshipTypeKey = findKey(row, ["نوع المنحة", "Scholarship Type"]);
+              const roomKey = findKey(row, ["رقم الغرفة", "Room"]);
+              const parentPhoneKey = findKey(row, ["هاتف ولي الأمر", "Parent Phone"]);
+              const parentAddressKey = findKey(row, ["عنوان ولي الأمر", "Address"]);
+              const parentIdKey = findKey(row, ["رقم بطاقة الولي", "Parent CIN", "Guardian ID"]);
+
+              return {
+                fullName: nameKey ? row[nameKey] : undefined,
+                academicId: idKey ? row[idKey] : undefined,
+                gender: genderKey ? (String(row[genderKey]).includes("ذكر") ? "male" : "female") : "male",
+                grade: gradeKey ? row[gradeKey] : undefined,
+                scholarshipNumber: scholarshipIdKey ? row[scholarshipIdKey] : undefined,
+                scholarshipType: scholarshipTypeKey ? row[scholarshipTypeKey] : "full",
+                roomNumber: roomKey ? row[roomKey] : undefined,
+                guardianPhone: parentPhoneKey ? row[parentPhoneKey] : undefined,
+                guardianAddress: parentAddressKey ? row[parentAddressKey] : undefined,
+                guardianId: parentIdKey ? row[parentIdKey] : undefined
+              };
+            }).filter(item => item.fullName); // Filter out empty rows
+
+            if (parsed.length > 0) {
+              resolve(parsed);
+              return;
+            }
+          }
 
           // Look for ID column with more variations
           const idKey = findKey(firstRow, ['رقم مسار', 'Academic ID', 'Code Massar', 'رقم التلميذ', 'CNE', 'رمز مسار', 'مسار']);

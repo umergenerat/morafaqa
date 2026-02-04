@@ -80,7 +80,7 @@ interface DataContextType {
 
   // Settings
   schoolSettings: SchoolSettings;
-  updateSchoolSettings: (settings: SchoolSettings) => void;
+  updateSchoolSettings: (settings: SchoolSettings) => Promise<{ success: boolean; error?: string }>;
 
   // Auth State
   currentUser: User | null;
@@ -108,7 +108,7 @@ interface DataContextType {
   addActivity: (activity: ActivityRecord) => void;
   updateActivity: (activity: ActivityRecord) => void;
   deleteActivity: (id: string) => void;
-  updateWeeklyMenus: (menus: WeeklyMenus) => void;
+  updateWeeklyMenus: (menus: WeeklyMenus) => Promise<{ success: boolean; error?: string }>;
   addAcademicRecord: (record: AcademicRecord) => void;
   updateAcademicRecord: (record: AcademicRecord) => void;
   deleteAcademicRecord: (id: string) => void;
@@ -293,24 +293,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // --- Supabase Sync Helper ---
-  const syncSupabase = async (table: string, action: 'insert' | 'update' | 'delete', data: any, id?: string) => {
-    if (isMockMode) return;
+  const syncSupabase = async (table: string, action: 'insert' | 'update' | 'delete' | 'upsert', data: any, id?: string): Promise<{ success: boolean; error?: string }> => {
+    if (isMockMode) return { success: true }; // In mock mode, pretend success
 
     try {
       let result;
       if (action === 'insert') {
         result = await supabase.from(table).insert([data]);
+      } else if (action === 'upsert') {
+        // Upsert is used for single-record tables like 'settings'
+        result = await supabase.from(table).upsert([{ id: id || 'current', ...data }], { onConflict: 'id' });
       } else if (action === 'update' && id) {
         result = await supabase.from(table).update(data).eq('id', id);
       } else if (action === 'delete' && id) {
         result = await supabase.from(table).delete().eq('id', id);
       }
 
-      if (result?.error) console.error(`Sync error [${table}]:`, result.error.message);
+      if (result?.error) {
+        console.error(`Sync error [${table}]:`, result.error.message);
+        return { success: false, error: result.error.message };
+      }
+      return { success: true };
     } catch (e: any) {
       console.error(`System error syncing ${table}:`, e.message);
+      return { success: false, error: e.message };
     }
   };
+
 
   // --- Auth Operations ---
   const login = (userId: string) => {
@@ -333,9 +342,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     sessionStorage.setItem('morafaka_session_user', JSON.stringify(user));
   };
 
-  const updateSchoolSettings = async (settings: SchoolSettings) => {
+  const updateSchoolSettings = async (settings: SchoolSettings): Promise<{ success: boolean; error?: string }> => {
     setSchoolSettings(settings);
-    syncSupabase('settings', 'update', settings, 'current'); // Assuming a 'current' id or logic on backend
+    // Use upsert to ensure the 'current' settings record exists or is created
+    return syncSupabase('settings', 'upsert', settings, 'current');
   };
 
   const saveAllChanges = () => { setHasUnsavedChanges(false); };
@@ -444,7 +454,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const updateWeeklyMenus = async (menus: WeeklyMenus) => {
     setWeeklyMenus(menus);
-    syncSupabase('settings', 'update', { weeklyMenus: menus }, 'current');
+    return syncSupabase('settings', 'upsert', { weeklyMenus: menus }, 'current');
   };
   const addAcademicRecord = (record: AcademicRecord) => {
     const r = { ...record, schoolYear: selectedSchoolYear }; // Academic Record usually has its own schoolYear, but default to context

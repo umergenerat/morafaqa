@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import {
   Search, Plus, Filter, Phone, MapPin, User, MessageCircle,
   FileText, GraduationCap, Edit2, Trash2, X, Sparkles, Send, Check,
-  HeartPulse, AlertTriangle, Clock, Upload, AlertOctagon, Fingerprint, ArrowRight
+  HeartPulse, AlertTriangle, Clock, Upload, AlertOctagon, Fingerprint, ArrowRight,
+  FileSpreadsheet, Download
 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -10,6 +11,7 @@ import { Student, UserRole } from '../types';
 import * as Permissions from '../utils/permissions';
 import { generateStudentReport, draftParentMessage } from '../services/geminiService';
 import ImportModal from '../components/ImportModal';
+import * as XLSX from 'xlsx';
 
 const StudentList: React.FC = () => {
   const {
@@ -166,6 +168,46 @@ const StudentList: React.FC = () => {
     }
   };
 
+  // --- Excel Template Download ---
+  const handleDownloadTemplate = () => {
+    // 1. Prepare Headers (Arabic)
+    const headers = [
+      "الاسم الكامل",
+      "رقم مسار (CNE)",
+      "الجنس (ذكر/أنثى)",
+      "المستوى",
+      "رقم المنحة",
+      "نوع المنحة (full/half/lunch/none)",
+      "رقم الغرفة",
+      "هاتف ولي الأمر",
+      "عنوان ولي الأمر",
+      "رقم بطاقة الولي (CNIE)"
+    ];
+
+    // 2. Create Sheet with just headers (or example row)
+    const exampleRow = [
+      "محمد علي",
+      "K123456789",
+      "ذكر",
+      "الأولى إعدادي",
+      "2201",
+      "full",
+      "12",
+      "0600000000",
+      "الدار البيضاء",
+      "GB123456"
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, exampleRow]);
+
+    // Auto-adjust column width
+    ws['!cols'] = headers.map(() => ({ wch: 20 }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students_Template");
+    XLSX.writeFile(wb, "Morafaqah_Students_Template.xlsx");
+  };
+
   return (
     <div className="space-y-6 relative h-[calc(100vh-140px)] flex flex-col">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
@@ -187,14 +229,24 @@ const StudentList: React.FC = () => {
           </div>
           {canEdit && (
             <>
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="bg-white border border-gray-300 text-gray-700 px-3 py-2.5 rounded-xl font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all"
-                title="استيراد لائحة"
-              >
-                <Upload className="w-5 h-5" />
-                <span className="hidden sm:inline">{t('import')}</span>
-              </button>
+              <div className="flex gap-1">
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="bg-white border border-gray-300 text-gray-600 px-3 py-2.5 rounded-l-xl font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all border-r-0"
+                  title="تحميل نموذج Excel"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="bg-white border border-gray-300 text-gray-700 px-3 py-2.5 rounded-r-xl font-bold hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all"
+                  title="استيراد لائحة"
+                >
+                  <Upload className="w-5 h-5" />
+                  <span className="hidden sm:inline">{t('import')}</span>
+                </button>
+              </div>
+
               <button
                 onClick={handleOpenAdd}
                 className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-emerald-700 flex items-center gap-2 shadow-md transition-all active:scale-95 whitespace-nowrap hidden md:flex"
