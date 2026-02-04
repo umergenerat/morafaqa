@@ -16,6 +16,18 @@ import {
   INITIAL_RAMADAN_AR,
   INITIAL_RAMADAN_FR
 } from '../constants';
+import {
+  studentFromDb, studentToDb,
+  userFromDb, userToDb,
+  behaviorFromDb, behaviorToDb,
+  healthFromDb, healthToDb,
+  attendanceFromDb, attendanceToDb,
+  exitFromDb, exitToDb,
+  activityFromDb, activityToDb,
+  academicFromDb, academicToDb,
+  maintenanceFromDb, maintenanceToDb,
+  settingsFromDb, settingsToDb
+} from '../utils/supabaseMapper';
 
 // Storage Keys
 const STORAGE_KEYS = {
@@ -253,27 +265,28 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (sRes.error) throw sRes.error;
 
         // Set State
-        if (sRes.data) setStudents(sRes.data);
-        if (uRes.data) setUsers(uRes.data.length > 0 ? uRes.data : DEFAULT_USERS_LIST);
+        if (sRes.data) setStudents(sRes.data.map(studentFromDb));
+        if (uRes.data) setUsers(uRes.data.length > 0 ? uRes.data.map(userFromDb) : DEFAULT_USERS_LIST);
 
         if (setRes.data) {
+          const mappedSettings = settingsFromDb(setRes.data);
           setSchoolSettings({
-            institutionName: setRes.data.institutionName || DEFAULT_SETTINGS.institutionName,
-            schoolYear: setRes.data.schoolYear || DEFAULT_SETTINGS.schoolYear,
-            geminiApiKey: setRes.data.geminiApiKey
+            institutionName: mappedSettings.institutionName || DEFAULT_SETTINGS.institutionName,
+            schoolYear: mappedSettings.schoolYear || DEFAULT_SETTINGS.schoolYear,
+            geminiApiKey: mappedSettings.geminiApiKey
           });
-          if (setRes.data.weeklyMenus) {
-            setWeeklyMenus(setRes.data.weeklyMenus);
+          if (mappedSettings.weeklyMenus) {
+            setWeeklyMenus(mappedSettings.weeklyMenus);
           }
         }
 
-        if (bRes.data) setBehaviorRecords(bRes.data);
-        if (hRes.data) setHealthRecords(hRes.data);
-        if (aRes.data) setAttendanceRecords(aRes.data);
-        if (eRes.data) setExitRecords(eRes.data);
-        if (actRes.data) setActivityRecords(actRes.data);
-        if (acaRes.data) setAcademicRecords(acaRes.data);
-        if (mRes.data) setMaintenanceRequests(mRes.data);
+        if (bRes.data) setBehaviorRecords(bRes.data.map(behaviorFromDb));
+        if (hRes.data) setHealthRecords(hRes.data.map(healthFromDb));
+        if (aRes.data) setAttendanceRecords(aRes.data.map(attendanceFromDb));
+        if (eRes.data) setExitRecords(eRes.data.map(exitFromDb));
+        if (actRes.data) setActivityRecords(actRes.data.map(activityFromDb));
+        if (acaRes.data) setAcademicRecords(acaRes.data.map(academicFromDb));
+        if (mRes.data) setMaintenanceRequests(mRes.data.map(maintenanceFromDb));
 
         // Fallback for empty DB
         if ((!uRes.data || uRes.data.length === 0) && (!sRes.data || sRes.data.length === 0)) {
@@ -297,14 +310,30 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (isMockMode) return { success: true }; // In mock mode, pretend success
 
     try {
+      let dbData = data;
+      if (action !== 'delete') {
+        switch (table) {
+          case 'students': dbData = studentToDb(data); break;
+          case 'users': dbData = userToDb(data); break;
+          case 'settings': dbData = settingsToDb(data); break;
+          case 'behavior_records': dbData = behaviorToDb(data); break;
+          case 'health_records': dbData = healthToDb(data); break;
+          case 'attendance_records': dbData = attendanceToDb(data); break;
+          case 'exit_records': dbData = exitToDb(data); break;
+          case 'activity_records': dbData = activityToDb(data); break;
+          case 'academic_records': dbData = academicToDb(data); break;
+          case 'maintenance_requests': dbData = maintenanceToDb(data); break;
+        }
+      }
+
       let result;
       if (action === 'insert') {
-        result = await supabase.from(table).insert([data]);
+        result = await supabase.from(table).insert([dbData]);
       } else if (action === 'upsert') {
         // Upsert is used for single-record tables like 'settings'
-        result = await supabase.from(table).upsert([{ id: id || 'current', ...data }], { onConflict: 'id' });
+        result = await supabase.from(table).upsert([{ id: id || 'current', ...dbData }], { onConflict: 'id' });
       } else if (action === 'update' && id) {
-        result = await supabase.from(table).update(data).eq('id', id);
+        result = await supabase.from(table).update(dbData).eq('id', id);
       } else if (action === 'delete' && id) {
         result = await supabase.from(table).delete().eq('id', id);
       }
