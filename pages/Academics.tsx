@@ -51,6 +51,7 @@ const Academics: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState<string>('all');
+  const [showMissingOnly, setShowMissingOnly] = useState(false);
 
   // Manual Add/Edit State
   const [showModal, setShowModal] = useState(false);
@@ -114,6 +115,28 @@ const Academics: React.FC = () => {
     const grades = new Set(students.map(s => s.grade));
     return Array.from(grades).sort();
   }, [students]);
+
+  // Students Missing Records for selected semester/grade
+  const missingRecordsStudents = useMemo(() => {
+    if (isParent) return [];
+
+    let studentsToCheck = students;
+    if (selectedGrade !== 'all') {
+      studentsToCheck = students.filter(s => s.grade === selectedGrade);
+    }
+
+    // Apply search filter if present
+    if (searchTerm) {
+      studentsToCheck = studentsToCheck.filter(s =>
+        s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.academicId.includes(searchTerm)
+      );
+    }
+
+    return studentsToCheck.filter(s =>
+      !academicRecords.some(r => r.studentId === s.id && r.semester === activeSemester)
+    );
+  }, [students, academicRecords, activeSemester, selectedGrade, isParent, searchTerm]);
 
   // Calculations for Stats (Only for Admins/Teachers)
   const stats = useMemo(() => {
@@ -624,12 +647,60 @@ const Academics: React.FC = () => {
               ))}
             </select>
           </div>
+
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-2 cursor-pointer bg-blue-50 px-4 py-3 rounded-xl border border-blue-100 hover:bg-blue-100 transition-colors shadow-sm">
+              <input
+                type="checkbox"
+                checked={showMissingOnly}
+                onChange={(e) => setShowMissingOnly(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+              />
+              <span className="font-bold text-blue-800 text-sm whitespace-nowrap">عرض غير المسجلين فقط</span>
+            </label>
+          </div>
         </div>
       )}
 
-      {/* Results Grid */}
+      {/* Results Grid / Missing Students List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredRecords.length === 0 ? (
+        {showMissingOnly ? (
+          missingRecordsStudents.length === 0 ? (
+            <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-gray-300">
+              <CheckCircle className="w-16 h-16 mx-auto text-emerald-200 mb-4" />
+              <p className="text-gray-400 font-medium">جميع تلاميذ هذا المستوى مسجلة نتائجهم.</p>
+            </div>
+          ) : (
+            missingRecordsStudents.map(student => (
+              <div key={student.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col sm:flex-row items-center p-5 gap-4 hover:shadow-md transition-shadow group">
+                <div className="relative">
+                  <img src={student.photoUrl} alt="" className="w-16 h-16 rounded-full border-2 border-gray-100" />
+                  <div className="absolute -top-1 -right-1 bg-amber-500 text-white p-1 rounded-full shadow-sm">
+                    <AlertTriangle className="w-3 h-3" />
+                  </div>
+                </div>
+                <div className="flex-grow text-center sm:text-right">
+                  <h3 className="font-bold text-gray-900">{student.fullName}</h3>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 mt-1">
+                    <span className="text-xs text-gray-500 font-mono">ID: {student.academicId}</span>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">{student.grade}</span>
+                  </div>
+                  <p className="text-[10px] text-red-500 font-bold mt-2">النتائج غير مسجلة حالياً لهذه الدورة</p>
+                </div>
+                <button
+                  onClick={() => {
+                    handleOpenAdd();
+                    setFormData(prev => ({ ...prev, studentId: student.id }));
+                  }}
+                  className="bg-blue-600 text-white px-4 py-2.5 rounded-lg font-bold hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  تسجيل النتيجة
+                </button>
+              </div>
+            ))
+          )
+        ) : filteredRecords.length === 0 ? (
           <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-dashed border-gray-300">
             <FileText className="w-16 h-16 mx-auto text-gray-200 mb-4" />
             <p className="text-gray-400 font-medium">
