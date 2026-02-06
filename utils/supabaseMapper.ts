@@ -53,7 +53,6 @@ export const studentToDb = (s: Student) => ({
     guardianAddress: s.guardianAddress,
     guardianId: s.guardianId,
     photoUrl: s.photoUrl,
-    photoUrl: s.photoUrl,
     // schoolYear: s.schoolYear // Missing in DB
 });
 
@@ -107,7 +106,6 @@ export const behaviorToDb = (b: BehaviorRecord) => ({
     description: b.description,
     date: b.date,
     reporter: b.reporter,
-    reporter: b.reporter,
     // schoolYear: b.schoolYear
 });
 
@@ -131,7 +129,6 @@ export const healthToDb = (h: HealthRecord) => ({
     notes: h.notes,
     date: h.date,
     severity: h.severity,
-    severity: h.severity,
     // schoolYear: h.schoolYear
 });
 
@@ -152,8 +149,7 @@ export const attendanceToDb = (a: AttendanceRecord) => ({
     studentId: a.studentId,
     date: a.date,
     status: a.status,
-    type: a.type,
-    type: a.type,
+    type: a.type
     // schoolYear: a.schoolYear
 });
 
@@ -174,7 +170,6 @@ export const exitToDb = (e: ExitRecord) => ({
     startDate: e.startDate,
     returnDate: e.returnDate,
     notes: e.notes,
-    isApproved: e.isApproved,
     isApproved: e.isApproved,
     // schoolYear: e.schoolYear
 });
@@ -203,8 +198,7 @@ export const activityToDb = (a: ActivityRecord) => ({
     status: a.status,
     participantsCount: a.participantsCount,
     participantIds: a.participantIds,
-    images: a.images,
-    images: a.images,
+    images: a.images
     // schoolYear: a.schoolYear
 });
 
@@ -229,8 +223,8 @@ export const academicToDb = (a: AcademicRecord) => ({
     id: a.id,
     studentId: a.studentId,
     semester: a.semester,
-    schoolYear: a.schoolYear,
-    generalAverage: a.generalAverage,
+    semester: a.semester,
+    // schoolYear: a.schoolYear,
     generalAverage: a.generalAverage,
     // unifiedExamAverage: a.unifiedExamAverage, // Missing in DB
     rank: a.rank,
@@ -268,7 +262,6 @@ export const maintenanceToDb = (m: MaintenanceRequest) => ({
     modifiedBy: m.modifiedBy,
     modificationDate: m.modificationDate,
     modificationReason: m.modificationReason,
-    modificationReason: m.modificationReason,
     // schoolYear: m.schoolYear
 });
 
@@ -293,7 +286,7 @@ export const maintenanceFromDb = (m: any): MaintenanceRequest => ({
 // SETTINGS
 export const settingsToDb = (s: SchoolSettings & { weeklyMenus?: WeeklyMenus }) => ({
     institutionName: s.institutionName,
-    schoolYear: s.schoolYear,
+    // schoolYear: s.schoolYear,
     logoUrl: s.logoUrl,
     geminiApiKey: s.geminiApiKey,
     weeklyMenus: s.weeklyMenus
