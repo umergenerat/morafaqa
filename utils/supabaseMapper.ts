@@ -223,7 +223,6 @@ export const academicToDb = (a: AcademicRecord) => ({
     id: a.id,
     studentId: a.studentId,
     semester: a.semester,
-    semester: a.semester,
     // schoolYear: a.schoolYear,
     generalAverage: a.generalAverage,
     // unifiedExamAverage: a.unifiedExamAverage, // Missing in DB
