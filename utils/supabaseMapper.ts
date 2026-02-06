@@ -53,7 +53,8 @@ export const studentToDb = (s: Student) => ({
     guardianAddress: s.guardianAddress,
     guardianId: s.guardianId,
     photoUrl: s.photoUrl,
-    schoolYear: s.schoolYear
+    photoUrl: s.photoUrl,
+    // schoolYear: s.schoolYear // Missing in DB
 });
 
 export const studentFromDb = (s: any): Student => ({
@@ -106,7 +107,8 @@ export const behaviorToDb = (b: BehaviorRecord) => ({
     description: b.description,
     date: b.date,
     reporter: b.reporter,
-    schoolYear: b.schoolYear
+    reporter: b.reporter,
+    // schoolYear: b.schoolYear
 });
 
 export const behaviorFromDb = (b: any): BehaviorRecord => ({
@@ -129,7 +131,8 @@ export const healthToDb = (h: HealthRecord) => ({
     notes: h.notes,
     date: h.date,
     severity: h.severity,
-    schoolYear: h.schoolYear
+    severity: h.severity,
+    // schoolYear: h.schoolYear
 });
 
 export const healthFromDb = (h: any): HealthRecord => ({
@@ -150,7 +153,8 @@ export const attendanceToDb = (a: AttendanceRecord) => ({
     date: a.date,
     status: a.status,
     type: a.type,
-    schoolYear: a.schoolYear
+    type: a.type,
+    // schoolYear: a.schoolYear
 });
 
 export const attendanceFromDb = (a: any): AttendanceRecord => ({
@@ -171,7 +175,8 @@ export const exitToDb = (e: ExitRecord) => ({
     returnDate: e.returnDate,
     notes: e.notes,
     isApproved: e.isApproved,
-    schoolYear: e.schoolYear
+    isApproved: e.isApproved,
+    // schoolYear: e.schoolYear
 });
 
 export const exitFromDb = (e: any): ExitRecord => ({
@@ -199,7 +204,8 @@ export const activityToDb = (a: ActivityRecord) => ({
     participantsCount: a.participantsCount,
     participantIds: a.participantIds,
     images: a.images,
-    schoolYear: a.schoolYear
+    images: a.images,
+    // schoolYear: a.schoolYear
 });
 
 export const activityFromDb = (a: any): ActivityRecord => ({
@@ -225,7 +231,8 @@ export const academicToDb = (a: AcademicRecord) => ({
     semester: a.semester,
     schoolYear: a.schoolYear,
     generalAverage: a.generalAverage,
-    unifiedExamAverage: a.unifiedExamAverage,
+    generalAverage: a.generalAverage,
+    // unifiedExamAverage: a.unifiedExamAverage, // Missing in DB
     rank: a.rank,
     subjects: a.subjects,
     teacherDecision: a.teacherDecision,
@@ -261,7 +268,8 @@ export const maintenanceToDb = (m: MaintenanceRequest) => ({
     modifiedBy: m.modifiedBy,
     modificationDate: m.modificationDate,
     modificationReason: m.modificationReason,
-    schoolYear: m.schoolYear
+    modificationReason: m.modificationReason,
+    // schoolYear: m.schoolYear
 });
 
 export const maintenanceFromDb = (m: any): MaintenanceRequest => ({
