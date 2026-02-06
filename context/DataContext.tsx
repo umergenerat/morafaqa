@@ -242,8 +242,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // 1. Connection Probe
         const { error: probeError } = await supabase.from('settings').select('id').limit(1).maybeSingle();
 
-        if (probeError && (probeError.message.includes('fetch') || probeError.message.includes('Failed to fetch'))) {
-          throw new Error("Connection failed");
+        if (probeError) {
+          console.error("Connection Probe Error:", probeError);
+          // Check for network/server errors
+          if (
+            probeError.message.includes('fetch') ||
+            probeError.message.includes('Failed to fetch') ||
+            probeError.message.includes('Network request failed') ||
+            (probeError as any).status === 503
+          ) {
+            throw new Error("Unable to connect to Supabase (Network/Server Error). Checking internet or service status...");
+          }
         }
 
         // 2. Fetch All Tables in Parallel
@@ -340,6 +349,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (result?.error) {
         console.error(`Sync error [${table}]:`, result.error.message);
+
+        let errorMsg = `Save Failed (${table}): ${result.error.message}`;
+        let guidance = "";
+
+        // Attempt to categorize the error
+        if (result.error.message.includes('fetch') || result.error.message.includes('Network') || (result as any).status >= 500) {
+          errorMsg = `Network Error (${table}): Unable to reach the server.`;
+          guidance = "\nPlease check your internet connection or Supabase status.";
+        } else if (result.error.code === '42501' || result.error.message.includes('permission') || result.error.message.includes('policy')) {
+          errorMsg = `Permission Denied (${table}): You do not have rights to perform this action.`;
+          guidance = "\nPlease check your role and Database Policies (RLS).";
+        } else if (result.error.code === '23505') {
+          errorMsg = `Duplicate Data (${table}): A record with this ID or unique field already exists.`;
+        }
+
+        // CRITICAL DEBUG: Alert the user so they know the save failed!
+        window.alert(`${errorMsg}${guidance}`);
         return { success: false, error: result.error.message };
       }
       return { success: true };
