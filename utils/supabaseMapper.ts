@@ -42,18 +42,18 @@ export const fromSupabaseGeneric = (data: any) => mapKeys(data, toCamelCase);
 // STUDENT
 export const studentToDb = (s: Student) => ({
     id: s.id,
-    fullName: s.fullName,
+    full_name: s.fullName,
     gender: s.gender,
-    academicId: s.academicId,
+    academic_id: s.academicId,
     grade: s.grade,
-    scholarshipNumber: s.scholarshipNumber,
-    scholarshipType: s.scholarshipType,
-    roomNumber: s.roomNumber,
-    guardianPhone: s.guardianPhone,
-    guardianAddress: s.guardianAddress,
-    guardianId: s.guardianId,
-    photoUrl: s.photoUrl,
-    // schoolYear: s.schoolYear // Missing in DB
+    scholarship_number: s.scholarshipNumber,
+    scholarship_type: s.scholarshipType,
+    room_number: s.roomNumber,
+    guardian_phone: s.guardianPhone,
+    guardian_address: s.guardianAddress,
+    guardian_id: s.guardianId,
+    photo_url: s.photoUrl,
+    school_year: s.schoolYear
 });
 
 export const studentFromDb = (s: any): Student => ({
@@ -80,9 +80,9 @@ export const userToDb = (u: User) => ({
     avatar: u.avatar,
     email: u.email,
     phone: u.phone,
-    nationalId: u.nationalId,
+    national_id: u.nationalId,
     password: u.password,
-    linkedStudentIds: u.linkedStudentIds
+    linked_student_ids: u.linkedStudentIds
 });
 
 export const userFromDb = (u: any): User => ({
@@ -100,13 +100,13 @@ export const userFromDb = (u: any): User => ({
 // BEHAVIOR
 export const behaviorToDb = (b: BehaviorRecord) => ({
     id: b.id,
-    studentId: b.studentId,
+    student_id: b.studentId,
     type: b.type,
     category: b.category,
     description: b.description,
     date: b.date,
     reporter: b.reporter,
-    // schoolYear: b.schoolYear
+    school_year: b.schoolYear
 });
 
 export const behaviorFromDb = (b: any): BehaviorRecord => ({
@@ -123,13 +123,13 @@ export const behaviorFromDb = (b: any): BehaviorRecord => ({
 // HEALTH
 export const healthToDb = (h: HealthRecord) => ({
     id: h.id,
-    studentId: h.studentId,
+    student_id: h.studentId,
     condition: h.condition,
     medication: h.medication,
     notes: h.notes,
     date: h.date,
     severity: h.severity,
-    // schoolYear: h.schoolYear
+    school_year: h.schoolYear
 });
 
 export const healthFromDb = (h: any): HealthRecord => ({
@@ -146,11 +146,11 @@ export const healthFromDb = (h: any): HealthRecord => ({
 // ATTENDANCE
 export const attendanceToDb = (a: AttendanceRecord) => ({
     id: a.id,
-    studentId: a.studentId,
+    student_id: a.studentId,
     date: a.date,
     status: a.status,
-    type: a.type
-    // schoolYear: a.schoolYear
+    type: a.type,
+    school_year: a.schoolYear
 });
 
 export const attendanceFromDb = (a: any): AttendanceRecord => ({
@@ -169,7 +169,7 @@ export const exitToDb = (e: ExitRecord) => ({
     type: e.type,
     start_date: e.startDate,
     return_date: e.returnDate,
-    notes: e.notes,
+    note: e.notes,
     is_approved: e.isApproved,
     school_year: e.schoolYear
 });
@@ -180,7 +180,7 @@ export const exitFromDb = (e: any): ExitRecord => ({
     type: e.type,
     startDate: e.start_date || e.startDate,
     returnDate: e.return_date || e.returnDate,
-    notes: e.notes,
+    notes: e.note || e.notes,
     isApproved: e.is_approved !== undefined ? e.is_approved : e.isApproved,
     schoolYear: e.school_year || e.schoolYear
 });
@@ -196,10 +196,10 @@ export const activityToDb = (a: ActivityRecord) => ({
     organizer: a.organizer,
     description: a.description,
     status: a.status,
-    participantsCount: a.participantsCount,
-    participantIds: a.participantIds,
-    images: a.images
-    // schoolYear: a.schoolYear
+    participants_count: a.participantsCount,
+    participant_ids: a.participantIds,
+    images: a.images,
+    school_year: a.schoolYear
 });
 
 export const activityFromDb = (a: any): ActivityRecord => ({
@@ -221,14 +221,14 @@ export const activityFromDb = (a: any): ActivityRecord => ({
 // ACADEMIC
 export const academicToDb = (a: AcademicRecord) => ({
     id: a.id,
-    studentId: a.studentId,
+    student_id: a.studentId,
     semester: a.semester,
-    // schoolYear: a.schoolYear,
-    generalAverage: a.generalAverage,
-    // unifiedExamAverage: a.unifiedExamAverage, // Missing in DB
+    school_year: a.schoolYear,
+    general_average: a.generalAverage,
+    unified_exam_average: a.unifiedExamAverage,
     rank: a.rank,
     subjects: a.subjects,
-    teacherDecision: a.teacherDecision,
+    teacher_decision: a.teacherDecision,
     appreciation: a.appreciation
 });
 
@@ -254,14 +254,14 @@ export const maintenanceToDb = (m: MaintenanceRequest) => ({
     description: m.description,
     priority: m.priority,
     status: m.status,
-    dateReported: m.dateReported,
-    reporterName: m.reporterName,
-    costEstimate: m.costEstimate,
-    originalValues: m.originalValues,
-    modifiedBy: m.modifiedBy,
-    modificationDate: m.modificationDate,
-    modificationReason: m.modificationReason,
-    // schoolYear: m.schoolYear
+    date_reported: m.dateReported,
+    reporter_name: m.reporterName,
+    cost_estimate: m.costEstimate,
+    original_values: m.originalValues,
+    modified_by: m.modifiedBy,
+    modification_date: m.modificationDate,
+    modification_reason: m.modificationReason,
+    school_year: m.schoolYear
 });
 
 export const maintenanceFromDb = (m: any): MaintenanceRequest => ({
@@ -284,11 +284,11 @@ export const maintenanceFromDb = (m: any): MaintenanceRequest => ({
 
 // SETTINGS
 export const settingsToDb = (s: SchoolSettings & { weeklyMenus?: WeeklyMenus }) => ({
-    institutionName: s.institutionName,
-    // schoolYear: s.schoolYear,
-    logoUrl: s.logoUrl,
-    geminiApiKey: s.geminiApiKey,
-    weeklyMenus: s.weeklyMenus
+    institution_name: s.institutionName,
+    school_year: s.schoolYear,
+    logo_url: s.logoUrl,
+    gemini_api_key: s.geminiApiKey,
+    weekly_menus: s.weeklyMenus
 });
 
 export const settingsFromDb = (s: any): SchoolSettings & { weeklyMenus?: WeeklyMenus } => ({
