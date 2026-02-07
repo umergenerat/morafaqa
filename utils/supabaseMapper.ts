@@ -165,13 +165,13 @@ export const attendanceFromDb = (a: any): AttendanceRecord => ({
 // EXIT
 export const exitToDb = (e: ExitRecord) => ({
     id: e.id,
-    studentId: e.studentId,
+    student_id: e.studentId,
     type: e.type,
-    startDate: e.startDate,
-    returnDate: e.returnDate,
+    start_date: e.startDate,
+    return_date: e.returnDate,
     notes: e.notes,
-    isApproved: e.isApproved,
-    // schoolYear: e.schoolYear
+    is_approved: e.isApproved,
+    school_year: e.schoolYear
 });
 
 export const exitFromDb = (e: any): ExitRecord => ({
