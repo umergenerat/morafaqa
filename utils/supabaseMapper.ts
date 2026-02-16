@@ -246,23 +246,31 @@ export const academicFromDb = (a: any): AcademicRecord => ({
 });
 
 // MAINTENANCE
-export const maintenanceToDb = (m: MaintenanceRequest) => ({
-    id: m.id,
-    title: m.title,
-    type: m.type,
-    location: m.location,
-    description: m.description,
-    priority: m.priority,
-    status: m.status,
-    date_reported: m.dateReported,
-    reporter_name: m.reporterName,
-    cost_estimate: m.costEstimate,
-    original_values: m.originalValues,
-    modified_by: m.modifiedBy,
-    modification_date: m.modificationDate,
-    modification_reason: m.modificationReason,
-    school_year: m.schoolYear
-});
+export const maintenanceToDb = (m: MaintenanceRequest) => {
+    const dbRecord: any = {
+        id: m.id,
+        title: m.title,
+        type: m.type,
+        location: m.location,
+        description: m.description,
+        priority: m.priority,
+        status: m.status,
+        date_reported: m.dateReported,
+        reporter_name: m.reporterName,
+        original_values: m.originalValues,
+        modified_by: m.modifiedBy,
+        modification_date: m.modificationDate,
+        modification_reason: m.modificationReason,
+        school_year: m.schoolYear
+    };
+
+    // Only include cost_estimate if it exists (column may not be in DB yet)
+    if (m.costEstimate !== undefined) {
+        dbRecord.cost_estimate = m.costEstimate;
+    }
+
+    return dbRecord;
+};
 
 export const maintenanceFromDb = (m: any): MaintenanceRequest => ({
     id: m.id,

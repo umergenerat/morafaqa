@@ -16,6 +16,7 @@ import {
   INITIAL_RAMADAN_AR,
   INITIAL_RAMADAN_FR
 } from '../constants';
+import { getLocalDateString } from '../utils/dateUtils';
 import {
   studentFromDb, studentToDb,
   userFromDb, userToDb,
@@ -467,7 +468,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   const updateAttendance = async (studentId: string, status: 'present' | 'absent' | 'late') => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateString();
     const existing = attendanceRecords.find(a => a.studentId === studentId && a.date === today);
     let newRecord: AttendanceRecord;
 

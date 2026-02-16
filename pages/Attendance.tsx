@@ -7,6 +7,8 @@ import { ExitRecord, ExitType, UserRole } from '../types';
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 
+import { getLocalDateString } from '../utils/dateUtils';
+
 // Helper Component for Sort Icon
 const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, sortKey: string, activeConfig: { key: string, direction: 'asc' | 'desc' } | null, onSort: () => void }) => {
   return (
@@ -43,7 +45,7 @@ const Attendance: React.FC = () => {
   const [showExitModal, setShowExitModal] = useState(false);
   const [newExit, setNewExit] = useState<Partial<ExitRecord>>({
     type: 'long',
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getLocalDateString(),
     returnDate: ''
   });
 
@@ -60,7 +62,7 @@ const Attendance: React.FC = () => {
   const [roomFilterDaily, setRoomFilterDaily] = useState<string>('ALL');
   const [roomFilterModal, setRoomFilterModal] = useState<string>('ALL');
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString();
   const isParent = currentUser?.role === UserRole.PARENT;
 
   // Helpers for Status

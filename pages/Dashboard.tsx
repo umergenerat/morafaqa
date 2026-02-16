@@ -19,6 +19,7 @@ import {
 import ImportModal from '../components/ImportModal';
 import { useData } from '../context/DataContext';
 import { Student, HealthRecord, BehaviorRecord, AttendanceRecord, MaintenanceRequest, AcademicRecord, UserRole } from '../types';
+import { getLocalDateString } from '../utils/dateUtils';
 
 
 // Hardcoded fallback data removed in favor of dynamic calculation
@@ -98,14 +99,18 @@ const Dashboard: React.FC = () => {
   // Compute Weekly Attendance Stats for Chart
   const dynamicAttendanceData = useMemo(() => {
     const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-    const today = new Date();
     const result = [];
+    const today = new Date();
 
     // Calculate for the last 7 days
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
+      // Use local date calculation consistent with getLocalDateString/utils
+      const d = new Date(today);
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const dayName = arabicDays[d.getDay()];
 
       const dayRecords = attendanceRecords.filter((r: AttendanceRecord) => {
@@ -116,32 +121,37 @@ const Dashboard: React.FC = () => {
         return isDate;
       });
 
-      const presentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'present' || r.status === 'late').length;
-      const absentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'absent').length;
-      const total = presentCount + absentCount;
+      // Stats Logic:
+      // 1. Total Students applicable for this day
+      // 2. Absent Count
+      // 3. Present = Total - Absent (Implicit Presence)
+      const currentTotalStudents = isParent ? relevantStudents.length : totalStudents;
 
-      if (total > 0) {
-        result.push({
-          name: dayName,
-          حضور: Math.round((presentCount / total) * 100),
-          غياب: Math.round((absentCount / total) * 100)
-        });
-      } else {
-        // Fallback to 0 if no records found for the day
-        result.push({
-          name: dayName,
-          حضور: 0,
-          غياب: 0
-        });
+      // Handle empty school/records
+      if (currentTotalStudents === 0) {
+        result.push({ name: dayName, حضور: 0, غياب: 0 });
+        continue;
       }
+
+      const absentCount = dayRecords.filter(r => r.status === 'absent').length;
+      const presentCount = currentTotalStudents - absentCount;
+
+      result.push({
+        name: dayName,
+        حضور: Math.round((presentCount / currentTotalStudents) * 100),
+        غياب: Math.round((absentCount / currentTotalStudents) * 100)
+      });
     }
 
     return result;
-  }, [attendanceRecords, isParent, linkedStudentIds]);
+  }, [attendanceRecords, isParent, linkedStudentIds, relevantStudents.length, totalStudents]);
 
   // Compute Today's Attendance Rate
   const todayAttendanceRate = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    // 1. Get Local Date
+    const todayStr = getLocalDateString();
+
+    // 2. Filter Records for Today
     const dayRecords = attendanceRecords.filter((r: AttendanceRecord) => {
       const isToday = r.date === todayStr;
       if (isParent) {
@@ -150,12 +160,18 @@ const Dashboard: React.FC = () => {
       return isToday;
     });
 
-    const total = dayRecords.length;
-    if (total === 0) return 0;
+    // 3. Logic: (Total Students - Absents) / Total Students * 100
+    // This supports "Exception Management" where only absences are marked.
+    const currentTotalStudents = isParent ? relevantStudents.length : totalStudents;
 
-    const presentCount = dayRecords.filter((r: AttendanceRecord) => r.status === 'present' || r.status === 'late').length;
-    return Math.round((presentCount / total) * 100);
-  }, [attendanceRecords, isParent, linkedStudentIds]);
+    if (currentTotalStudents === 0) return 0;
+
+    const absentCount = dayRecords.filter(r => r.status === 'absent').length;
+    // We assume anyone NOT marked absent is present (or implicitly present)
+    const presentCount = currentTotalStudents - absentCount;
+
+    return Math.round((presentCount / currentTotalStudents) * 100);
+  }, [attendanceRecords, isParent, linkedStudentIds, relevantStudents.length, totalStudents]);
 
   // Compute Alerts Feed
   const alerts = useMemo(() => {
