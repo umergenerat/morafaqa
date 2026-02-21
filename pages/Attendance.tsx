@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Save, Upload, Check, Clock, X, LogOut, Calendar, Plus, MapPin, Search, Users, CheckSquare, Square, Filter, FileDown, ArrowLeftRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Home } from 'lucide-react';
+import { Save, Upload, Check, Clock, X, LogOut, Calendar, Plus, MapPin, Search, Users, CheckSquare, Square, Filter, FileDown, ArrowLeftRight, History, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Home, Edit2 } from 'lucide-react';
 import ImportModal from '../components/ImportModal';
 import { useData } from '../context/DataContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -32,10 +32,14 @@ const SortHeader = ({ label, sortKey, activeConfig, onSort }: { label: string, s
 
 const Attendance: React.FC = () => {
   const { t } = useLanguage();
-  const { students, attendanceRecords, updateAttendance, exitRecords, addExitRecord, deleteExitRecord, currentUser, schoolSettings } = useData();
+  const { students, attendanceRecords, updateAttendance, exitRecords, addExitRecord, updateExitRecord, deleteExitRecord, currentUser, schoolSettings } = useData();
   const [showImportModal, setShowImportModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'daily' | 'exits'>('daily');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+
+  // Edit Exit State
+  const [editingExitId, setEditingExitId] = useState<string | null>(null);
+  const [editingExitType, setEditingExitType] = useState<ExitType>('long');
 
   // Sorting State
   const [dailySort, setDailySort] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -248,6 +252,15 @@ const Attendance: React.FC = () => {
       case 'authorized': return { text: t('authorized_exit'), color: 'bg-purple-50 text-purple-700 border-purple-100', icon: <Check className="w-3 h-3" /> };
       default: return { text: type, color: 'bg-gray-100', icon: null };
     }
+  };
+
+  const handleSaveExitEdit = (record: ExitRecord) => {
+    updateExitRecord({ ...record, type: editingExitType });
+    setEditingExitId(null);
+  };
+
+  const handleCancelExitEdit = () => {
+    setEditingExitId(null);
   };
 
   const openExitModal = () => {
@@ -621,10 +634,38 @@ const Attendance: React.FC = () => {
                             ) : 'طالب محذوف'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit border ${typeInfo.color}`}>
-                              {typeInfo.icon}
-                              {typeInfo.text}
-                            </span>
+                            {editingExitId === record.id ? (
+                              <div className="flex items-center gap-2">
+                                <select
+                                  value={editingExitType}
+                                  onChange={(e) => setEditingExitType(e.target.value as ExitType)}
+                                  className="text-sm border border-emerald-300 rounded-lg px-2 py-1 bg-white focus:ring-1 focus:ring-emerald-500 outline-none"
+                                >
+                                  <option value="short">{t('short_exit')}</option>
+                                  <option value="long">{t('long_exit')}</option>
+                                  <option value="authorized">{t('authorized_exit')}</option>
+                                </select>
+                                <button
+                                  onClick={() => handleSaveExitEdit(record)}
+                                  className="text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 p-1.5 rounded-full transition-colors"
+                                  title="حفظ"
+                                >
+                                  <Check className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={handleCancelExitEdit}
+                                  className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-full transition-colors"
+                                  title="إلغاء"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center gap-1 w-fit border ${typeInfo.color}`}>
+                                {typeInfo.icon}
+                                {typeInfo.text}
+                              </span>
+                            )}
                           </td>
                           <td className="px-6 py-4 text-sm font-mono text-gray-600 dir-ltr text-right whitespace-nowrap">
                             {record.startDate}
@@ -650,13 +691,26 @@ const Attendance: React.FC = () => {
                           </td>
                           {!isParent && (
                             <td className="px-6 py-4 text-center print:hidden" data-html2canvas-ignore="true">
-                              <button
-                                onClick={() => deleteExitRecord(record.id)}
-                                className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition-colors"
-                                title="حذف"
-                              >
-                                <X className="w-5 h-5" />
-                              </button>
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingExitId(record.id);
+                                    setEditingExitType(record.type);
+                                  }}
+                                  className="text-blue-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-full transition-colors"
+                                  title="تعديل النوع"
+                                  disabled={editingExitId === record.id}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => deleteExitRecord(record.id)}
+                                  className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition-colors"
+                                  title="حذف"
+                                >
+                                  <X className="w-5 h-5" />
+                                </button>
+                              </div>
                             </td>
                           )}
                         </tr>

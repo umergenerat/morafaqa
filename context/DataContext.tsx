@@ -117,6 +117,7 @@ interface DataContextType {
   deleteBehaviorRecord: (id: string) => void;
   updateAttendance: (studentId: string, status: 'present' | 'absent' | 'late') => void;
   addExitRecord: (record: ExitRecord) => void;
+  updateExitRecord: (record: ExitRecord) => void;
   deleteExitRecord: (id: string) => void;
   addActivity: (activity: ActivityRecord) => void;
   updateActivity: (activity: ActivityRecord) => void;
@@ -487,6 +488,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setExitRecords(prev => [r, ...prev]);
     syncSupabase('exit_records', 'insert', r);
   };
+  const updateExitRecord = (record: ExitRecord) => {
+    setExitRecords(prev => prev.map(e => e.id === record.id ? record : e));
+    syncSupabase('exit_records', 'update', record, record.id);
+  };
   const deleteExitRecord = (id: string) => {
     if (window.confirm('هل أنت متأكد من حذف سجل الخروج هذا؟')) {
       setExitRecords(prev => prev.filter(e => e.id !== id));
@@ -568,7 +573,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addUser, updateUser, deleteUser,
       addHealthRecord, updateHealthRecord, deleteHealthRecord,
       addBehaviorRecord, updateBehaviorRecord, deleteBehaviorRecord,
-      updateAttendance, addExitRecord, deleteExitRecord,
+      updateAttendance, addExitRecord, updateExitRecord, deleteExitRecord,
       addActivity, updateActivity, deleteActivity,
       updateWeeklyMenus,
       addAcademicRecord, updateAcademicRecord, deleteAcademicRecord,

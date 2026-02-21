@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 
 const Dining: React.FC = () => {
   const { t, language } = useLanguage();
-  const { currentUser, students, users, attendanceRecords, weeklyMenus, updateWeeklyMenus } = useData();
+  const { currentUser, students, users, attendanceRecords, exitRecords, weeklyMenus, updateWeeklyMenus } = useData();
   const [isRamadan, setIsRamadan] = useState(false);
 
   // Editing State
@@ -159,18 +159,25 @@ const Dining: React.FC = () => {
   const calculateDailyCounts = () => {
     const today = new Date().toISOString().split('T')[0];
     const totalStudents = students.length;
-    // In a real app, calculate based on attendance records for 'today'
-    // For now, we simulate finding present students
     const absents = attendanceRecords.filter(r => r.date === today && r.status === 'absent').length;
-    const presentCount = totalStudents - absents;
+    // التلاميذ في خرجة نشطة (تاريخ العودة لم يحن بعد أو يساوي اليوم)
+    const onExit = exitRecords.filter(e => {
+      const returnDate = new Date(e.returnDate);
+      const todayDate = new Date(today);
+      return returnDate >= todayDate;
+    }).length;
+    const presentCount = Math.max(0, totalStudents - absents - onExit);
     return {
       total: totalStudents,
+      absents,
+      onExit,
       present: presentCount
     };
   };
 
   const handleSendOrder = () => {
-    const baseCount = calculateDailyCounts().present;
+    const counts = calculateDailyCounts();
+    const baseCount = counts.present;
     const recipient = users.find(u => u.id === selectedRecipientId);
 
     if (!recipient || !recipient.phone) {
@@ -184,7 +191,11 @@ const Dining: React.FC = () => {
 
     const message = `*${t('notify_kitchen')}* 👨‍🍳
 -------------------
-📊 *${t('daily_count')}* (تلاميذ): ${baseCount}
+📊 *${t('daily_count')}*:
+  👥 إجمالي التلاميذ: ${counts.total}
+  ❌ غائبون: ${counts.absents}
+  🚶 في خرجة: ${counts.onExit}
+  ✅ *الحاضرون الفعليون: ${baseCount}*
 
 📦 *${t('extra_meals')}*:
 - ${m1Label}: +${extraMeals.m1}
@@ -447,9 +458,24 @@ const Dining: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex justify-between items-center">
-                  <span className="text-orange-800 font-bold">{t('daily_count')} (تلاميذ):</span>
-                  <span className="text-2xl font-bold text-orange-900">{calculateDailyCounts().present}</span>
+                {/* Daily Count Summary */}
+                <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-orange-800 text-sm font-medium">👥 إجمالي التلاميذ:</span>
+                    <span className="font-bold text-orange-700">{calculateDailyCounts().total}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-red-700 text-sm font-medium">❌ غائبون:</span>
+                    <span className="font-bold text-red-600">- {calculateDailyCounts().absents}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-blue-700 text-sm font-medium">🚶 في خرجة نشطة:</span>
+                    <span className="font-bold text-blue-600">- {calculateDailyCounts().onExit}</span>
+                  </div>
+                  <div className="border-t border-orange-200 pt-2 flex justify-between items-center">
+                    <span className="text-orange-900 font-bold">{t('daily_count')} (الوجبات):</span>
+                    <span className="text-2xl font-bold text-orange-900">{calculateDailyCounts().present}</span>
+                  </div>
                 </div>
 
                 <div>
