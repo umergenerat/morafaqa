@@ -29,7 +29,7 @@ const COLORS = ['#10b981', '#ef4444'];
 
 interface AlertItem {
   id: string;
-  type: 'health' | 'behavior';
+  type: 'health' | 'behavior' | 'attendance';
   studentId: string;
   studentName: string;
   description: string;
@@ -179,13 +179,35 @@ const Dashboard: React.FC = () => {
 
 
 
+    // Attendance Alerts (Absent/Late Today)
+    const todayStr = getLocalDateString();
+    attendanceRecords.forEach((r: AttendanceRecord) => {
+      if (r.date === todayStr && (r.status === 'absent' || r.status === 'late')) {
+        const student = students.find((s: Student) => s.id === r.studentId);
+        // Only show relevant students for parents, or all for staff
+        if (isParent && !linkedStudentIds.includes(r.studentId)) return;
+
+        combined.push({
+          id: `a-${r.id}`,
+          type: 'attendance',
+          studentId: r.studentId,
+          studentName: student?.fullName || 'غير معروف',
+          description: r.status === 'absent' ? 'غياب غير مبرر' : 'تأخر عن الالتحاق',
+          detail: `تم تسجيل الطالب ${r.status === 'absent' ? 'غائباً' : 'متأخراً'} اليوم ${todayStr}`,
+          date: r.date,
+          severity: 'high',
+          isCritical: true
+        });
+      }
+    });
+
     // Health Alerts
     relevantHealthRecords.forEach((h: HealthRecord) => {
       const student = students.find((s: Student) => s.id === h.studentId);
       combined.push({
         id: `h-${h.id}`,
         type: 'health',
-        studentId: h.studentId, // Added for contact info lookup
+        studentId: h.studentId,
         studentName: student?.fullName || 'غير معروف',
         description: h.condition,
         detail: h.notes,
@@ -202,7 +224,7 @@ const Dashboard: React.FC = () => {
         combined.push({
           id: `b-${b.id}`,
           type: 'behavior',
-          studentId: b.studentId, // Added for contact info lookup
+          studentId: b.studentId,
           studentName: student?.fullName || 'غير معروف',
           description: b.category === 'discipline' ? 'مخالفة انضباط' : 'سلوك سلبي',
           detail: b.description,
@@ -215,26 +237,33 @@ const Dashboard: React.FC = () => {
 
     // Sort by date descending
     return combined.sort((a: AlertItem, b: AlertItem) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [relevantHealthRecords, relevantBehaviorRecords, students]);
+  }, [relevantHealthRecords, relevantBehaviorRecords, attendanceRecords, students, isParent, linkedStudentIds]);
 
   const filteredAlerts = alerts.filter((a: AlertItem) => {
     if (alertFilter === 'all') return true;
     return a.type === alertFilter;
   });
 
-  // Helper to format WhatsApp Message
+  // Helper to format Communication Message
+  const getAlertMessage = (alert: AlertItem) => {
+    if (alert.type === 'health') {
+      return `السلام عليكم، نُعلمكم بأن التلميذ(ة) ${alert.studentName} يعاني من: ${alert.description}. التفاصيل: ${alert.detail}. المرجو المتابعة مع المؤسسة.`;
+    } else if (alert.type === 'attendance') {
+      return `السلام عليكم، نُعلمكم بأن التلميذ(ة) ${alert.studentName} تم تسجيله ${alert.description} اليوم ${alert.date}. المرجو التواصل مع الإدارة. شكراً.`;
+    } else {
+      return `السلام عليكم، نُعلمكم بتسجيل ملحوظة سلوكية للتلميذ(ة) ${alert.studentName}: ${alert.description}. التفاصيل: ${alert.detail}. المرجو التواصل معنا.`;
+    }
+  };
+
   const getWhatsAppLink = (phone: string, alert: AlertItem) => {
     if (!phone) return '#';
-    const cleanPhone = phone.replace(/\s/g, '').replace(/^0/, '212');
+    const cleanPhone = phone.replace(/\s+/g, '').replace(/^0/, '212');
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(getAlertMessage(alert))}`;
+  };
 
-    let message = '';
-    if (alert.type === 'health') {
-      message = `السلام عليكم، إدارة "مرافقة" تخبركم أن التلميذ ${alert.studentName} يعاني من: ${alert.description}. التفاصيل: ${alert.detail}. المرجو المتابعة.`;
-    } else {
-      message = `السلام عليكم، إدارة "مرافقة" تود إخباركم بتسجيل ملاحظة سلوكية للتلميذ ${alert.studentName}: ${alert.description}. التفاصيل: ${alert.detail}. المرجو التواصل معنا.`;
-    }
-
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  const getSMSLink = (phone: string, alert: AlertItem) => {
+    if (!phone) return '#';
+    return `sms:${phone}?body=${encodeURIComponent(getAlertMessage(alert))}`;
   };
 
   return (
@@ -556,9 +585,9 @@ const Dashboard: React.FC = () => {
                           <span className="text-xs font-mono text-gray-400 mb-0.5">{alert.date}</span>
                           <h4 className="font-bold text-gray-800 text-sm">{alert.studentName}</h4>
                         </div>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white font-bold shadow-sm ${alert.type === 'health' ? 'bg-red-500' : 'bg-orange-500'
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full text-white font-bold shadow-sm ${alert.type === 'health' ? 'bg-red-500' : alert.type === 'attendance' ? 'bg-blue-600' : 'bg-orange-500'
                           }`}>
-                          {alert.type === 'health' ? 'صحي' : 'سلوكي'}
+                          {alert.type === 'health' ? 'صحي' : alert.type === 'attendance' ? 'حضور' : 'سلوكي'}
                         </span>
                       </div>
 
@@ -576,20 +605,28 @@ const Dashboard: React.FC = () => {
 
                       {/* Contact Actions (Only for Admin/Supervisor) */}
                       {!isParent && guardianPhone && (
-                        <div className="mt-3 pt-3 border-t border-gray-100 flex gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                           <a
                             href={getWhatsAppLink(guardianPhone, alert)}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex-1 bg-green-50 text-green-700 text-xs font-bold py-1.5 rounded-lg hover:bg-green-100 flex items-center justify-center gap-1 transition-colors"
+                            className="flex-1 bg-green-50 text-green-700 text-[10px] font-bold py-1.5 rounded-lg hover:bg-green-100 flex items-center justify-center gap-1 transition-colors border border-green-100"
                             title="إرسال عبر واتساب"
                           >
                             <MessageCircle className="w-3.5 h-3.5" />
                             واتساب
                           </a>
                           <a
+                            href={getSMSLink(guardianPhone, alert)}
+                            className="flex-1 bg-blue-50 text-blue-700 text-[10px] font-bold py-1.5 rounded-lg hover:bg-blue-100 flex items-center justify-center gap-1 transition-colors border border-blue-100"
+                            title="إرسال رسالة قصيرة"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            SMS
+                          </a>
+                          <a
                             href={`tel:${guardianPhone}`}
-                            className="flex-1 bg-blue-50 text-blue-700 text-xs font-bold py-1.5 rounded-lg hover:bg-blue-100 flex items-center justify-center gap-1 transition-colors"
+                            className="flex-1 bg-gray-50 text-gray-700 text-[10px] font-bold py-1.5 rounded-lg hover:bg-gray-100 flex items-center justify-center gap-1 transition-colors border border-gray-200"
                             title="اتصال هاتفي"
                           >
                             <Phone className="w-3.5 h-3.5" />
