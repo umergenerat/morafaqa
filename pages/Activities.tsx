@@ -146,6 +146,28 @@ const Activities: React.FC = () => {
     }));
   };
 
+  const toggleSelectAll = () => {
+    const currentIds = newActivity.participantIds || [];
+    const filteredIds = filteredStudents.map(s => s.id);
+    const allSelected = filteredIds.every(id => currentIds.includes(id));
+
+    let newIds: string[];
+    if (allSelected) {
+      // إلغاء تحديد جميع التلاميذ الظاهرين
+      newIds = currentIds.filter(id => !filteredIds.includes(id));
+    } else {
+      // إضافة جميع التلاميذ الظاهرين الذين لم يُحددوا بعد
+      const toAdd = filteredIds.filter(id => !currentIds.includes(id));
+      newIds = [...currentIds, ...toAdd];
+    }
+
+    setNewActivity(prev => ({
+      ...prev,
+      participantIds: newIds,
+      participantsCount: newIds.length
+    }));
+  };
+
   const handleSave = () => {
     if (!newActivity.title || !newActivity.date) return;
 
@@ -534,6 +556,17 @@ const Activities: React.FC = () => {
                         ))}
                       </select>
                     </div>
+                    {filteredStudents.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="px-3 py-2 text-xs font-bold border rounded-lg whitespace-nowrap transition-colors bg-white border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                      >
+                        {filteredStudents.every(s => newActivity.participantIds?.includes(s.id))
+                          ? 'إلغاء الكل'
+                          : 'تحديد الكل'}
+                      </button>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
