@@ -292,10 +292,42 @@ const Attendance: React.FC = () => {
 
         const imgData = canvas.toDataURL('image/jpeg', 1.0);
         const pdf = new jsPDF('p', 'mm', 'a4');
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfPageHeight = pdf.internal.pageSize.getHeight();
+
+        // Height of the image when scaled to PDF page width (in mm)
+        const imgHeightInMm = (canvas.height * pdfWidth) / canvas.width;
+
+        // Height of one PDF page worth of the canvas (in canvas pixels)
+        const pageHeightInPx = (pdfPageHeight * canvas.width) / pdfWidth;
+
+        let remainingHeight = canvas.height;
+        let yOffsetPx = 0;
+        let isFirstPage = true;
+
+        while (remainingHeight > 0) {
+          if (!isFirstPage) {
+            pdf.addPage();
+          }
+
+          // The Y position in the image (in mm) for this page slice
+          const yOffsetMm = (yOffsetPx * pdfWidth) / canvas.width;
+
+          pdf.addImage(
+            imgData,
+            'JPEG',
+            0,
+            -yOffsetMm,        // shift image up by the offset of the current page
+            pdfWidth,
+            imgHeightInMm
+          );
+
+          yOffsetPx += pageHeightInPx;
+          remainingHeight -= pageHeightInPx;
+          isFirstPage = false;
+        }
+
         pdf.save(`Exits_Registry_${today}.pdf`);
       } catch (error) {
         console.error("PDF Generation failed", error);
