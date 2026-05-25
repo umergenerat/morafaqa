@@ -197,9 +197,9 @@ DO $$ BEGIN
     CREATE POLICY "rec_select" ON public.health_records FOR SELECT TO authenticated
     USING (public.get_my_role() IN ('ADMIN','SUPERVISOR','NURSE')
       OR (public.get_my_role() = 'PARENT' AND public.is_my_student("studentId"::TEXT)));
-    CREATE POLICY "rec_insert" ON public.health_records FOR INSERT TO authenticated WITH CHECK (public.get_my_role() IN ('ADMIN','NURSE'));
-    CREATE POLICY "rec_update" ON public.health_records FOR UPDATE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE'));
-    CREATE POLICY "rec_delete" ON public.health_records FOR DELETE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE'));
+    CREATE POLICY "rec_insert" ON public.health_records FOR INSERT TO authenticated WITH CHECK (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
+    CREATE POLICY "rec_update" ON public.health_records FOR UPDATE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
+    CREATE POLICY "rec_delete" ON public.health_records FOR DELETE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
   $p$;
 EXCEPTION WHEN undefined_table THEN NULL; END $$;
 
@@ -208,9 +208,9 @@ DO $$ BEGIN
     CREATE POLICY "rec_select" ON public."healthRecords" FOR SELECT TO authenticated
     USING (public.get_my_role() IN ('ADMIN','SUPERVISOR','NURSE')
       OR (public.get_my_role() = 'PARENT' AND public.is_my_student("studentId"::TEXT)));
-    CREATE POLICY "rec_insert" ON public."healthRecords" FOR INSERT TO authenticated WITH CHECK (public.get_my_role() IN ('ADMIN','NURSE'));
-    CREATE POLICY "rec_update" ON public."healthRecords" FOR UPDATE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE'));
-    CREATE POLICY "rec_delete" ON public."healthRecords" FOR DELETE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE'));
+    CREATE POLICY "rec_insert" ON public."healthRecords" FOR INSERT TO authenticated WITH CHECK (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
+    CREATE POLICY "rec_update" ON public."healthRecords" FOR UPDATE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
+    CREATE POLICY "rec_delete" ON public."healthRecords" FOR DELETE TO authenticated USING (public.get_my_role() IN ('ADMIN','NURSE','SUPERVISOR'));
   $p$;
 EXCEPTION WHEN undefined_table THEN NULL; END $$;
 

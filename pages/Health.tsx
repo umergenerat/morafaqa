@@ -17,7 +17,7 @@ const Health: React.FC = () => {
   });
 
   const isParent = currentUser?.role === UserRole.PARENT;
-  const canEdit = currentUser?.role === UserRole.NURSE || currentUser?.role === UserRole.ADMIN;
+  const canEdit = currentUser?.role === UserRole.NURSE || currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.SUPERVISOR;
 
   // Filter records based on role
   const displayedHealthRecords = isParent
@@ -46,10 +46,14 @@ const Health: React.FC = () => {
     setNewRecord({ severity: 'low', date: new Date().toISOString().split('T')[0] }); // Reset
   };
 
-  // Mock medication schedule logic (filtering for demo)
-  const medicationSchedule = isParent 
-    ? [] // In real app, filter medication schedule based on linked students
-    : [{ studentName: 'يوسف العمراني', med: 'Loratadine - 10mg', time: '12:30 م' }];
+  // Dynamic medication schedule from active cases
+  const medicationSchedule = activeRecords
+    .filter(r => r.medication && r.medication.trim() !== '')
+    .map(r => ({
+      studentName: students.find(s => s.id === r.studentId)?.fullName || 'طالب غير معروف',
+      med: r.medication!,
+      time: 'حسب الوصفة'
+    }));
 
   return (
     <div className="space-y-6">
