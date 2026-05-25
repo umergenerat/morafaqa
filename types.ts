@@ -79,6 +79,7 @@ export interface HealthRecord {
   notes: string;
   date: string;
   severity: 'low' | 'medium' | 'high';
+  status?: 'active' | 'cured';
   schoolYear?: string;
 }
 

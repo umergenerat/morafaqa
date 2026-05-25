@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Plus, Pill, Clock, Upload, Trash2, X, Calendar } from 'lucide-react';
+import { Plus, Pill, Clock, Upload, Trash2, X, Calendar, CheckCircle, Archive } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import ImportModal from '../components/ImportModal';
 import { HealthRecord, UserRole } from '../types';
 
 const Health: React.FC = () => {
-  const { students, healthRecords, addHealthRecord, deleteHealthRecord, currentUser } = useData();
+  const { students, healthRecords, addHealthRecord, updateHealthRecord, deleteHealthRecord, currentUser } = useData();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   
   // Form State
   const [newRecord, setNewRecord] = useState<Partial<HealthRecord>>({ 
@@ -22,6 +23,10 @@ const Health: React.FC = () => {
     ? healthRecords.filter(h => currentUser?.linkedStudentIds?.includes(h.studentId))
     : healthRecords;
 
+  const activeRecords = displayedHealthRecords.filter(r => r.status !== 'cured');
+  const archivedRecords = displayedHealthRecords.filter(r => r.status === 'cured');
+  const currentRecords = activeTab === 'active' ? activeRecords : archivedRecords;
+
   const handleSaveRecord = () => {
     if (!newRecord.studentId || !newRecord.condition) return;
 
@@ -32,7 +37,8 @@ const Health: React.FC = () => {
       condition: newRecord.condition,
       notes: newRecord.notes || '',
       severity: newRecord.severity as 'low' | 'medium' | 'high',
-      medication: newRecord.medication || ''
+      medication: newRecord.medication || '',
+      status: 'active'
     });
     
     setShowAddModal(false);
@@ -107,18 +113,30 @@ const Health: React.FC = () => {
         <div className={isParent ? "col-span-full" : "lg:col-span-2"}>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
              <div className="p-5 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-               <h3 className="font-bold text-gray-800 text-lg">
-                 {isParent ? 'سجل الزيارات والوصفات' : 'سجل الزيارات الأخير'}
-               </h3>
+               <div className="flex gap-4">
+                 <button 
+                   onClick={() => setActiveTab('active')}
+                   className={`font-bold text-lg px-3 py-1 rounded-lg transition-colors ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                 >
+                   {isParent ? 'الحالات النشطة' : 'الحالات النشطة'}
+                 </button>
+                 <button 
+                   onClick={() => setActiveTab('archived')}
+                   className={`font-bold text-lg px-3 py-1 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'archived' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                 >
+                   <Archive className="w-4 h-4" />
+                   الأرشيف (تم الشفاء)
+                 </button>
+               </div>
                {!isParent && <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border">آخر 7 أيام</span>}
              </div>
              <div className="divide-y divide-gray-100">
-               {displayedHealthRecords.length === 0 ? (
+               {currentRecords.length === 0 ? (
                  <div className="p-8 text-center text-gray-400">
                    {isParent ? 'سجل طفلك سليم، لا توجد زيارات طبية مسجلة.' : 'لا توجد سجلات طبية'}
                  </div>
                ) : (
-                 displayedHealthRecords.map(record => {
+                 currentRecords.map(record => {
                    const student = students.find(s => s.id === record.studentId);
                    return (
                      <div key={record.id} className="p-5 hover:bg-gray-50 transition-colors group">
@@ -135,15 +153,26 @@ const Health: React.FC = () => {
                           </div>
                           <div className="flex flex-col items-end gap-2">
                             <span className="text-xs text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded">{record.date}</span>
-                            {!isParent && (
-                              <button 
-                                onClick={() => deleteHealthRecord(record.id)}
+                            <div className="flex gap-2">
+                              {!isParent && activeTab === 'active' && (
+                                <button 
+                                  onClick={() => updateHealthRecord({ ...record, status: 'cured' })}
+                                  className="text-green-500 hover:text-green-700 hover:bg-green-50 p-1.5 rounded-full transition-colors opacity-100 flex items-center gap-1"
+                                  title="تم الشفاء - نقل للأرشيف"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                </button>
+                              )}
+                              {!isParent && (
+                                <button 
+                                  onClick={() => deleteHealthRecord(record.id)}
                                 className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors opacity-100"
                                 title="حذف السجل"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
-                            )}
+                              )}
+                            </div>
                           </div>
                        </div>
                      </div>
