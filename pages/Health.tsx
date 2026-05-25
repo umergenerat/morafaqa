@@ -17,6 +17,7 @@ const Health: React.FC = () => {
   });
 
   const isParent = currentUser?.role === UserRole.PARENT;
+  const canEdit = currentUser?.role === UserRole.NURSE || currentUser?.role === UserRole.ADMIN;
 
   // Filter records based on role
   const displayedHealthRecords = isParent
@@ -59,7 +60,7 @@ const Health: React.FC = () => {
              {isParent ? 'متابعة الحالة الصحية والوصفات الطبية' : 'إدارة الملفات الطبية والزيارات اليومية'}
           </p>
         </div>
-        {!isParent && (
+        {canEdit && (
           <div className="flex gap-3 w-full sm:w-auto">
             <button 
               onClick={() => setShowImportModal(true)}
@@ -118,7 +119,7 @@ const Health: React.FC = () => {
                    onClick={() => setActiveTab('active')}
                    className={`font-bold text-lg px-3 py-1 rounded-lg transition-colors ${activeTab === 'active' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
                  >
-                   {isParent ? 'الحالات النشطة' : 'الحالات النشطة'}
+                   {isParent ? 'سجل الزيارات والوصفات' : 'الحالات النشطة'}
                  </button>
                  <button 
                    onClick={() => setActiveTab('archived')}
@@ -154,7 +155,7 @@ const Health: React.FC = () => {
                           <div className="flex flex-col items-end gap-2">
                             <span className="text-xs text-gray-400 font-medium bg-gray-100 px-2 py-1 rounded">{record.date}</span>
                             <div className="flex gap-2">
-                              {!isParent && activeTab === 'active' && (
+                              {canEdit && activeTab === 'active' && (
                                 <button 
                                   onClick={() => updateHealthRecord({ ...record, status: 'cured' })}
                                   className="text-green-500 hover:text-green-700 hover:bg-green-50 p-1.5 rounded-full transition-colors opacity-100 flex items-center gap-1"
@@ -163,7 +164,7 @@ const Health: React.FC = () => {
                                   <CheckCircle className="w-4 h-4" />
                                 </button>
                               )}
-                              {!isParent && (
+                              {canEdit && (
                                 <button 
                                   onClick={() => deleteHealthRecord(record.id)}
                                 className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-full transition-colors opacity-100"
